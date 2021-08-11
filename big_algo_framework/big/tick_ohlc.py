@@ -14,11 +14,11 @@ class tickToOHLC:
         table2 = self.db[self.historic_data_table]
 
         # Fetch the results for the specific ticker form the streaming_data table
-        # Create dataframe and set datetime as index and convert it to a python datetime object
+        # Create dataframe and set date_time as index and convert it to a python datetime object
         # Resample them to 1 min OHLC candles and drop the NA
-        streaming_data = table1.find(ticker=self.ticker[0])
+        streaming_data = table1.find(ticker=self.ticker[0], order_by=['date_time'])
         data = pd.DataFrame(streaming_data)
-        data = data.set_index(['datetime'])
+        data = data.set_index(['date_time'])
         data.index = pd.to_datetime(data.index)
         data_ask = data.resample(self.rule_tf).agg({'price': 'ohlc', 'volume': 'sum'})
         data_ask = data_ask.dropna()
@@ -26,7 +26,7 @@ class tickToOHLC:
         # Flattening the multi-index dataframe to a single level dataframe
         data_ask.columns = data_ask.columns.to_series().str.join('')
 
-        # Reanming the columns for the dataframe
+        # Renaming the columns for the dataframe
         data_ask = data_ask.rename(columns={"priceopen": "open",
                                             "pricehigh": "high",
                                             "pricelow": "low",
@@ -43,4 +43,4 @@ class tickToOHLC:
         # Append each row to the database table
         for row in rows:
             print(row)
-            table2.upsert(row, ['datetime', 'ticker', 'timeframe'])
+            table2.upsert(row, ['date_time', 'ticker', 'timeframe'])

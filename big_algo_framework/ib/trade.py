@@ -6,10 +6,8 @@ import time
 myorder = BIGOrders()
 
 def takeTrade(app, con, order_dict, dashboard_dict):
-    # change this from "<" to ">" later
-    if (order_dict["action"] == "BUY" and order_dict["tp2"] < order_dict["tp1"]) or \
+    if (order_dict["action"] == "BUY" and order_dict["tp2"] > order_dict["tp1"]) or \
             (order_dict["action"] == "SELL" and order_dict["tp2"] < order_dict["tp1"]):
-        print("2>1")
         app.reqIds(1)
         time.sleep(1)
         parentOrderId = app.orderId
@@ -68,7 +66,6 @@ def closeOnEarnings(db, app):
 
         for i in range(len(earnings_tickers)):
             if earnings_tickers[i] == ticker:
-                print("Ticker modifier is: ", ticker, " --- ", order_row)
 
                 if remaining != 0:
                     app.cancelOrder(order_id)
@@ -82,7 +79,6 @@ def closeOnEarnings(db, app):
 
         for i in range(len(earnings_tickers)):
             if earnings_tickers[i] == ticker:
-                print("Ticker modifier is: ", ticker, " --- ", order_row)
                 # Modify the order
                 if remaining != 0:
                     cont = StockContract()

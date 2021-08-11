@@ -44,7 +44,6 @@ class BIGIBClient(EWrapper, EClient):
         dictionary = {"Account":account, "Symbol": contract.symbol, "SecType": contract.secType,
                       "Currency": contract.currency, "Position": position, "Avg cost": avgCost}
         self.pos_df = self.pos_df.append(dictionary, ignore_index=True)
-        # print(self.pos_df)
 
     def positionEnd(self):
         print("Latest position data extracted")

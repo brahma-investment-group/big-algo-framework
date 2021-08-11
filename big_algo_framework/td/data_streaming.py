@@ -1,8 +1,9 @@
 import tda
 from tda.streaming import StreamClient
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import configparser
+import pytz
 
 class tdTimeSaleDataStreaming:
     def __init__(self, db, tickers, streaming_data_table, queue_size=1, credentials_path='./ameritrade-credentials.json'):
@@ -72,14 +73,36 @@ class tdTimeSaleDataStreaming:
         Here we pull messages off the queue and process them.
         """
         while True:
+            statement = "CREATE TABLE IF NOT EXISTS {} (date_time timestamp with time zone NOT NULL);" .format(self.streaming_data_table)
+            self.db.query(statement)
+
             msg = await self.queue.get()
             table = self.db[self.streaming_data_table]
 
-            for content in msg['content']:
-                print("Price for ", content['key'], "is: ", content['LAST_PRICE'], "occured at: ", datetime.fromtimestamp(content['TRADE_TIME']/1000), "volume is: ", content['LAST_SIZE'])
-                data = dict(datetime=datetime.fromtimestamp(content['TRADE_TIME']/1000),
-                            ticker = content['key'],
-                            price=content['LAST_PRICE'],
-                            volume=content['LAST_SIZE'])
+            now = datetime.now()
+            day = now.day
+            month = now.month
+            year = now.year
 
-                table.insert(data)
+            mkt_start = datetime(year, month, day, 9, 30, 00)
+            mkt_end = datetime(year, month, day, 16, 00, 00)
+
+            for content in msg['content']:
+                dt = datetime.fromtimestamp(int(content['TRADE_TIME'] / 1000))
+                if mkt_start <= dt <= mkt_end:
+                    eastern = pytz.timezone("US/Eastern")
+                    dt = eastern.localize(dt)
+
+                    print("Price for ", content['key'], "is: ", content['LAST_PRICE'], "occured at: ", dt, "volume is: ", content['LAST_SIZE'])
+                    data = dict(date_time = dt,
+                                ticker = content['key'],
+                                price=content['LAST_PRICE'],
+                                volume=content['LAST_SIZE'])
+
+                    table.insert(data)
+
+                    now = datetime.now(tz=pytz.timezone("UTC")).astimezone()
+                    gtd = now - timedelta(minutes=15)
+
+                    statement = "DELETE FROM {} WHERE date_time < '{}';" .format(self.streaming_data_table, gtd)
+                    self.db.query(statement)

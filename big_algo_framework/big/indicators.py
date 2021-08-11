@@ -24,9 +24,8 @@ class BIGIndicators():
         else:
             df["BB_MA"] = round(df['close'].ewm(span=bb_ma_length, min_periods=bb_ma_length).mean(),5)
 
-        df["BB_up"] = round(df["BB_MA"] + 2 * df['close'].rolling(bb_ma_length).std(ddof=0),5)  # ddof=0 is required since we want to take the standard deviation of the population and not sample
-        df["BB_down"] = round(df["BB_MA"] - 2 * df['close'].rolling(bb_ma_length).std(ddof=0),5)  # ddof=0 is required since we want to take the standard deviation of the population and not sample
-
+        df["BB_up"] = round(df["BB_MA"] + 2 * df['close'].rolling(bb_ma_length).std(ddof=0),5)
+        df["BB_down"] = round(df["BB_MA"] - 2 * df['close'].rolling(bb_ma_length).std(ddof=0),5)
         df["BB_width"] = df["BB_up"] - df["BB_down"]
         df["BB_percentage"] = (df['close'] - df["BB_down"]) / (df["BB_up"] - df['BB_down'])
 
@@ -42,7 +41,6 @@ class BIGIndicators():
         else:
             df["KC_MA"] = round(df['close'].ewm(span=kc_ma_length, min_periods=kc_ma_length).mean(), 5)
 
-
         df["KC_up"] = df["KC_MA"] + atr_df["ATR"] * kc_atr_multiplier
         df["KC_down"] = df["KC_MA"] - atr_df["ATR"] * kc_atr_multiplier
 
@@ -57,6 +55,7 @@ class BIGIndicators():
         avg_loss = []
         gain = df['gain'].tolist()
         loss = df['loss'].tolist()
+
         for i in range(len(df)):
             if i < rsi_length:
                 avg_gain.append(np.NaN)
@@ -67,6 +66,7 @@ class BIGIndicators():
             elif i > rsi_length:
                 avg_gain.append(((rsi_length - 1) * avg_gain[i - 1] + gain[i]) / rsi_length)
                 avg_loss.append(((rsi_length - 1) * avg_loss[i - 1] + loss[i]) / rsi_length)
+
         df['avg_gain'] = np.array(avg_gain)
         df['avg_loss'] = np.array(avg_loss)
         df['RS'] = df['avg_gain'] / df['avg_loss']
@@ -94,4 +94,5 @@ class BIGIndicators():
         df['MACD'] = df['MA_Fast'] - df['MA_Slow']
         df['Signal'] = df['MACD'].ewm(span=signal_ma, min_periods=signal_ma).mean()
         df['Direction'] = np.where(df['MACD'] >= df['Signal'], "Bullish", "Bearish")
+
         return df

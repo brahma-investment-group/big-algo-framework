@@ -16,4 +16,3 @@ class FinnHubData():
         r = requests.get(f'https://finnhub.io/api/v1/calendar/earnings?from={from_date}&to={to_date}&token={self.key}')
         time.sleep(1)
         self.earning = pd.DataFrame(r.json()['earningsCalendar'])
-

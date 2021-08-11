@@ -19,15 +19,13 @@ class StockContract():
         quantity = totalRisk/riskPerShare
         return quantity
 
-
 class ForexContract():
     def __init__(self):
         self.contract = Contract()
 
-    def forexContract(self, symbol, sec_type="CASH", currency="USD", exchange="IDEALPRO"):
+    def getForexContract(self, symbol, sec_type="CASH", currency="USD", exchange="IDEALPRO"):
         self.contract.symbol = symbol
         self.contract.secType = sec_type
         self.contract.currency = currency
         self.contract.exchange = exchange
         return self.contract
-

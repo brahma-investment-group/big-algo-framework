@@ -18,32 +18,27 @@ def getAction(direction, order_dict):
 
     return order_dict
 
-
 def getEarningTickers():
     earnings_tickers = []
-    now = datetime.now().strftime('%H:%M:%S')
 
-    if now > "10:00:00" and now < "16:00:00":
-        est = pytz.timezone('US/Eastern')
-        earnings_from_date = datetime.today().astimezone(est).strftime('%Y-%m-%d')
-        earnings_to_date = datetime.today() + timedelta(days=1)
+    earnings_from_date = datetime.today().strftime('%Y-%m-%d')
+    earnings_to_date = datetime.today() + timedelta(days=1)
 
-        time_now = datetime.now()
-        x = get_trading_close_holidays(time_now.year)
-        while earnings_to_date in x or earnings_to_date.weekday() in [5, 6]:
-            earnings_to_date = earnings_to_date + timedelta(days=1)
-        earnings_to_date = earnings_to_date.astimezone(est).strftime('%Y-%m-%d')
+    time_now = datetime.now()
+    x = get_trading_close_holidays(time_now.year)
+    while earnings_to_date in x or earnings_to_date.weekday() in [5, 6]:
+        earnings_to_date = earnings_to_date + timedelta(days=1)
+    earnings_to_date = earnings_to_date.strftime('%Y-%m-%d')
 
-        earnings_data = FinnHubData()
-        earnings_data.get_earnings_data(earnings_from_date, earnings_to_date)
+    earnings_data = FinnHubData()
+    earnings_data.get_earnings_data(earnings_from_date, earnings_to_date)
 
-        if len(earnings_data.earning) != 0:
-            df = earnings_data.earning.loc[
-                ((earnings_data.earning['date'] == str(earnings_from_date)) & (earnings_data.earning['hour'] == "amc")) |
-                ((earnings_data.earning['date'] == str(earnings_to_date)) & (earnings_data.earning['hour'] == "bmo"))]
+    if len(earnings_data.earning) != 0:
+        df = earnings_data.earning.loc[
+            ((earnings_data.earning['date'] == str(earnings_from_date)) & (earnings_data.earning['hour'] == "amc")) |
+            ((earnings_data.earning['date'] == str(earnings_to_date)) & (earnings_data.earning['hour'] == "bmo"))]
 
-            earnings_tickers = df['symbol'].tolist()
-            earnings_tickers.append("FB")
-            print(earnings_tickers)
+        earnings_tickers = df['symbol'].tolist()
+        print(earnings_tickers)
 
     return earnings_tickers

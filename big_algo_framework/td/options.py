@@ -21,9 +21,6 @@ class tdOptions(object):
         time.sleep(1)
         content = json.loads(page.content)
 
-        underlyingPrice = content["underlyingPrice"]
-        print(underlyingPrice)
-
         call_options = pd.DataFrame()
         put_options = pd.DataFrame()
 
@@ -117,7 +114,7 @@ class tdOptions(object):
                                                          ignore_index=True)
 
             self.options_chain = pd.merge(call_options, put_options, how='outer', on=['strikePrice', 'expirationDate', 'daysToExpiration'], suffixes=("_call", "_put"))
-            self.options_chain['expirationDate'] = pd.to_datetime(self.options_chain['expirationDate'])
+            self.options_chain['expirationDate'] = pd.to_datetime(self.options_chain['expirationDate'], unit = "ms")
 
             self.options_chain["call_put_volume"] = self.options_chain["call_totalVolume"] / self.options_chain["put_totalVolume"]
             self.options_chain["call_put_oi"] = self.options_chain["call_openInterest"] / self.options_chain["put_openInterest"]
@@ -132,8 +129,6 @@ class tdOptions(object):
             self.options_chain = self.options_chain.replace(np.nan, 0)
             self.options_chain = self.options_chain.replace([np.inf, -np.inf], 999999)
 
-            pd.set_option('display.max_columns', None)
-            print(self.options_chain)
             return self.options_chain
 
         else:

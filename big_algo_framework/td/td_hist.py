@@ -1,6 +1,4 @@
 import tda
-import time
-import pprint
 import configparser
 
 class tdHist:
@@ -43,4 +41,5 @@ class tdHist:
                                                      need_extended_hours_data=False,
                                                      start_datetime=self.start_dt,
                                                      end_datetime=self.end_dt)
+
         return response.json()
