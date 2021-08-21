@@ -1,11 +1,12 @@
 from mysql.connector import connect, Error
-import dataset
 import psycopg2
 import time
 import numpy as np
 import configparser
 from datetime import datetime
 from pytz import timezone
+import pandas as pd
+from sqlalchemy import create_engine, text
 
 #CREATE DATABASE
 def createDB(db_name, config_path):
@@ -29,48 +30,38 @@ def createDB(db_name, config_path):
         else:
             conn.cursor().execute('CREATE DATABASE {};'.format(db_name))
 
-        db = dataset.connect("postgresql://postgres:{}@{}:5432/{}" . format(password, host, db_name))
+        psql_info = "postgresql://postgres:{}@{}:5432/{}" . format(password, host, db_name)
+        db = create_engine(psql_info)
+
         return db
 
     except Error as e:
         print(e)
-
-def deleteAllRows(db, table_name):
-    """
-        Deletes all rows from table_name
-    """
-    table = db[table_name]
-    table.delete()
 
 def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
     """
         Insert historic data into database
     """
     try:
-        statement = "CREATE TABLE IF NOT EXISTS {} (date_time timestamp with time zone NOT NULL);" .format(historic_data_table)
-        db.query(statement)
-        table = db[historic_data_table]
+        start_time = time.time()
+        table_name = historic_data_table + "_" + timeframe.replace(" ", "_")
 
-        for candle in resp["candles"]:
-            dt = datetime.fromtimestamp(int(candle["datetime"] / 1000))
+        df = pd.DataFrame.from_dict(resp['candles'])
+        df['ticker'] = ticker
 
-            #Brokers like TD return monthly historic data at 01 hour instead of 00 hour. So manually replacing them to be 00.
-            if timeframe == "1 month":
-                dt = dt.replace(hour=0)
+        df['date_time'] = pd.to_datetime(df['datetime'], unit='ms', utc=True)
+        df = df.drop('datetime', 1)
 
-            timezone1 = timezone(time_zone)
-            dt = timezone1.localize(dt)
+        if timeframe == "1 month":
+            df['date_time'] = df['date_time'].apply(lambda x: x.replace(hour=0))
 
-            data = dict(date_time=dt,
-                        ticker=ticker,
-                        timeframe=timeframe,
-                        open=candle["open"],
-                        high=candle["high"],
-                        low=candle["low"],
-                        close=candle["close"],
-                        volume=candle["volume"])
+        df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
 
-            table.upsert(data, ['date_time', 'ticker', 'timeframe'])
+        query = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);" .format(table_name +"_ticker_dt", table_name))
+        with db.connect() as conn:
+            conn.execute(query)
+
+        print("TOTAL TIME FOR DB: ", time.time() - start_time)
 
     except Error as e:
         print(e)
@@ -79,6 +70,7 @@ def insertOptionsData(opt_df, db, options_data_table):
     """
         Insert tdOptions data into database
     """
+    #TODO: Later rewrite below code using sqlalchemy
     try:
         table = db[options_data_table]
 

@@ -2,6 +2,7 @@ from big_algo_framework.ib.orders import *
 from big_algo_framework.big.general import getEarningTickers
 from big_algo_framework.ib.contracts import *
 import time
+import pandas as pd
 
 myorder = BIGOrders()
 
@@ -53,40 +54,39 @@ def takeTrade(app, con, order_dict, dashboard_dict):
         return dashboard_dict
 
 def closeOnEarnings(db, app):
-    orders = db["orders"]
     earnings_tickers = getEarningTickers()
 
     # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-    pending_positions = orders.find(orderType="STP LMT", status=("PreSubmitted", "Submitted"))
+    open_orders = pd.read_sql_query("select * from orders where order_type='STP LMT' and order_status IN ('PreSubmitted', 'Submitted'));", con=db)
 
-    for order_row in pending_positions:
-        order_id = order_row['orderId']
-        ticker = order_row['ticker']
-        remaining = order_row['remaining']
+    for ind in open_orders.index:
+        ticker = open_orders['ticker'][ind]
 
-        for i in range(len(earnings_tickers)):
-            if earnings_tickers[i] == ticker:
+        if ticker in earnings_tickers:
+            order_id = open_orders['order_id'][ind]
+            remaining = open_orders['remaining'][ind]
 
-                if remaining != 0:
-                    app.cancelOrder(order_id)
+            if remaining != 0:
+                app.cancelOrder(order_id)
 
     # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
-    open_positions = orders.find(orderType="LMT", status=("PreSubmitted", "Submitted"))
+    open_positions = pd.read_sql_query("select * from orders where order_type='LMT' and order_status IN ('PreSubmitted', 'Submitted'));", con=db)
 
-    for order_row in open_positions:
-        ticker = order_row['ticker']
-        remaining = order_row['remaining']
+    for ind in open_positions.index:
+        ticker = open_positions['ticker'][ind]
 
-        for i in range(len(earnings_tickers)):
-            if earnings_tickers[i] == ticker:
-                # Modify the order
-                if remaining != 0:
-                    cont = StockContract()
-                    con = cont.getStockContract(ticker)
+        if ticker in earnings_tickers:
+            order_id = open_positions['order_id'][ind]
+            remaining = open_positions['remaining'][ind]
+            action = open_positions['action'][ind]
 
-                    order_dict = {"orderId": order_row['orderId'],
-                                  "action": order_row["action"],
-                                  "quantity": order_row["remaining"],
-                                  }
+            if remaining != 0:
+                cont = StockContract()
+                con = cont.getStockContract(ticker)
 
-                    myorder.ModifyMarketOrder(app, con, order_dict)
+                order_dict = {"orderId": order_id,
+                              "action": action,
+                              "quantity": remaining,
+                              }
+
+                myorder.ModifyMarketOrder(app, con, order_dict)

@@ -1,6 +1,5 @@
 from datetime import timedelta
 from datetime import datetime
-import pytz
 from big_algo_framework.finnhub.earnings import *
 from big_algo_framework.big.calendar_us import *
 
@@ -39,6 +38,5 @@ def getEarningTickers():
             ((earnings_data.earning['date'] == str(earnings_to_date)) & (earnings_data.earning['hour'] == "bmo"))]
 
         earnings_tickers = df['symbol'].tolist()
-        print(earnings_tickers)
 
     return earnings_tickers

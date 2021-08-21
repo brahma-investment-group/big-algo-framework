@@ -4,6 +4,8 @@ import asyncio
 from datetime import datetime, timedelta
 import configparser
 import pytz
+import pandas as pd
+from sqlalchemy import text
 
 class tdTimeSaleDataStreaming:
     def __init__(self, db, tickers, streaming_data_table, queue_size=1, credentials_path='./ameritrade-credentials.json'):
@@ -73,11 +75,10 @@ class tdTimeSaleDataStreaming:
         Here we pull messages off the queue and process them.
         """
         while True:
-            statement = "CREATE TABLE IF NOT EXISTS {} (date_time timestamp with time zone NOT NULL);" .format(self.streaming_data_table)
-            self.db.query(statement)
+            # statement = "CREATE TABLE IF NOT EXISTS {} (date_time timestamp with time zone NOT NULL);" .format(self.streaming_data_table)
+            # self.db.query(statement)
 
             msg = await self.queue.get()
-            table = self.db[self.streaming_data_table]
 
             now = datetime.now()
             day = now.day
@@ -88,21 +89,22 @@ class tdTimeSaleDataStreaming:
             mkt_end = datetime(year, month, day, 16, 00, 00)
 
             for content in msg['content']:
-                dt = datetime.fromtimestamp(int(content['TRADE_TIME'] / 1000))
-                if mkt_start <= dt <= mkt_end:
+                date_time = datetime.fromtimestamp(int(content['TRADE_TIME'] / 1000))
+                if mkt_start <= date_time <= mkt_end:
                     eastern = pytz.timezone("US/Eastern")
-                    dt = eastern.localize(dt)
+                    date_time = eastern.localize(date_time)
 
-                    print("Price for ", content['key'], "is: ", content['LAST_PRICE'], "occured at: ", dt, "volume is: ", content['LAST_SIZE'])
-                    data = dict(date_time = dt,
-                                ticker = content['key'],
-                                price=content['LAST_PRICE'],
-                                volume=content['LAST_SIZE'])
+                    print("Price for ", content['key'], "is: ", content['LAST_PRICE'], "occured at: ", date_time, "volume is: ", content['LAST_SIZE'])
 
-                    table.insert(data)
+                    d = {'ticker': [content['key']],
+                         'date_time': [date_time],
+                         'price': [content['LAST_PRICE']],
+                         'volume': [content['LAST_SIZE']]}
 
-                    now = datetime.now(tz=pytz.timezone("UTC")).astimezone()
-                    gtd = now - timedelta(minutes=15)
+                    df = pd.DataFrame(data=d)
+                    df.to_sql(self.streaming_data_table, self.db, if_exists='append', index=False, method='multi')
 
-                    statement = "DELETE FROM {} WHERE date_time < '{}';" .format(self.streaming_data_table, gtd)
-                    self.db.query(statement)
+                    query = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);".format(self.streaming_data_table + "date_time", self.streaming_data_table))
+                    with self.db.connect() as conn:
+                        conn.execute(query)
+

@@ -3,36 +3,21 @@ from ibapi.wrapper import EWrapper
 import pandas as pd
 import time
 from big_algo_framework.big.database import createDB
+from sqlalchemy import text
 
 class BIGIBClient(EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
-        self.data = {}
-        self.pos_df = pd.DataFrame(columns=['Account', 'Symbol', 'SecType',
-                                    'Currency', 'Position', 'Avg cost'])
-        self.order_df = pd.DataFrame(columns=['PermId', 'ClientId', 'OrderId',
-                                          'Account', 'Symbol', 'SecType',
-                                          'Exchange', 'Action', 'OrderType',
-                                          'TotalQty', 'CashQty', 'LmtPrice',
-                                          'AuxPrice', 'Status'])
-
-        self.orderStatus_df = pd.DataFrame(columns=['OrderStatus. Id', 'Status', 'Filled', 'Remaining',
-                                                    'AvgFillPrice', 'PermId', 'ParentId', 'LastFillPrice', 'ClientId',
-                                                    'WhyHeld', 'MktCapPrice'])
-
         self.db = createDB("market_data", "data/config.ini")
-
 
     def historicalData(self, reqId, bar):
         print("HistoricalData. ReqId:", reqId, "BarData.", bar)
 
     def historicalDataEnd(self, reqId, start, end):
-        print("THIS ISSS:", reqId)
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
 
     def historicalDataUpdate(self, reqId, bar):
-        print("THIS IS:", reqId)
         print("HistoricalDataUpdate. ReqId:", reqId, "BarData.", bar)
 
     def nextValidId(self, orderId):
@@ -50,56 +35,41 @@ class BIGIBClient(EWrapper, EClient):
 
     def openOrder(self, orderId, contract, order, orderState):
         super().openOrder(orderId, contract, order, orderState)
-        print("OPEN ORDERS")
-        dictionary = {"PermId":order.permId, "ClientId": order.clientId, "OrderId": orderId,
-                      "Symbol": contract.symbol,"Action": order.action, "OrderType": order.orderType,
-                      "LmtPrice": order.lmtPrice, "AuxPrice": order.auxPrice, "Status": orderState.status}
-        self.order_df = self.order_df.append(dictionary, ignore_index=True)
-
-        table = self.db["orders"]
-
-        data = dict(orderId=orderId,
-                    permId=order.permId,
+        data = dict(order_id=orderId,
+                    perm_id=order.permId,
                     ticker=contract.symbol,
-                    orderType=order.orderType,
+                    order_type=order.orderType,
                     action=order.action,
-                    limitPrice=order.lmtPrice,
-                    stopPrice=order.auxPrice,
+                    limit_price=order.lmtPrice,
+                    stop_price=order.auxPrice,
+
+                    order_status="",
+                    filled=0.0,
+                    remaining=0.0,
+                    avg_fill_price=0.0,
+                    parent_id=0,
+                    last_fill_price=0.0,
+                    client_id=0,
+                    why_held="",
+
+                    execution_time="",
+                    order_ref=""
                     )
 
-        table.upsert(data, ['orderId'])
+        df = pd.DataFrame(data=data)
+        df.to_sql("orders", self.db, if_exists='append', index=False, method='multi')
+        query = text("CREATE INDEX IF NOT EXISTS {} ON {} (order_id);".format("order_id", "orders"))
+        with self.db.connect() as conn:
+            conn.execute(query)
 
     def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        Statusdictionary = {"OrderId": orderId,
-              "Status": status,
-              "Filled": filled,
-              "Remaining": remaining,
-              "AvgFillPrice": avgFillPrice,
-              "PermId": permId,
-              "ParentId": parentId,
-              "LastFillPrice": lastFillPrice,
-              "ClientId": clientId,
-              "WhyHeld": whyHeld,
-              "MktCapPrice": mktCapPrice}
-
-        self.orderStatus_df = self.orderStatus_df.append(Statusdictionary, ignore_index=True)
-
-        table = self.db["orders"]
-
-        data = dict(orderId=orderId,
-                    status=status,
-                    filled=filled,
-                    remaining=remaining,
-                    avgFillPrice=avgFillPrice,
-                    parentId=parentId,
-                    clientId=clientId,
-                    whyHeld=whyHeld)
-
-        table.upsert(data, ['orderId'])
+        pd.read_sql_query("UPDATE orders SET "
+                          "(order_status, filled, remaining, avg_fill_price, parent_id, client_id, why_held) = "
+                          "(status, filled, remaining, avgFillPrice, parentId, clientId, whyHeld) "
+                          "WHERE order_id = orderId;", con=self.db)
 
     def contractDetails(self, reqId, contractDetails):
         print("Contract Details: ", reqId, " ", contractDetails, "\n")
-
         self.mintick = contractDetails.minTick
         self.conid = contractDetails.contract.conId
 
@@ -108,13 +78,6 @@ class BIGIBClient(EWrapper, EClient):
 
     def execDetails(self, reqId, contract, execution):
         super().execDetails(reqId, contract, execution)
-        print("ExecDetails. ReqId:", reqId, "Symbol:", contract.symbol, "SecType:", contract.secType, "Currency:",
-              contract.currency, execution, "Order Ref: ", execution.orderRef)
 
-        table = self.db["orders"]
-
-        data = dict(orderId=execution.orderId,
-                    Executiontime=execution.time,
-                    orderRef = execution.orderRef)
-
-        table.upsert(data, ['orderId'])
+        pd.read_sql_query("UPDATE orders SET (execution_time, order_ref) = (execution.time, execution.orderRef) "
+                          "WHERE order_id = execution.orderId;", con=self.db)

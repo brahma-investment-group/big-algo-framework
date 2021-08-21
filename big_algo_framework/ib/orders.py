@@ -116,7 +116,6 @@ class BIGOrders():
                                     parent_orderId = "",
                                     transmit = True)
 
-
         client.placeOrder(order_dict["orderId"], contract, parent)
 
     def ModifyTakeProfit(self, client, contract, order_dict):
