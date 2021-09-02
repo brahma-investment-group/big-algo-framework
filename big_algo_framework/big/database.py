@@ -43,25 +43,20 @@ def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
         Insert historic data into database
     """
     try:
-        start_time = time.time()
         table_name = historic_data_table + "_" + timeframe.replace(" ", "_")
 
-        df = pd.DataFrame.from_dict(resp['candles'])
-        df['ticker'] = ticker
+        if resp.get('candles'):
+            df = pd.DataFrame.from_dict(resp['candles'])
+            df['ticker'] = ticker
 
-        df['date_time'] = pd.to_datetime(df['datetime'], unit='ms', utc=True)
-        df = df.drop('datetime', 1)
+            if not df.empty:
+                df = df.rename(columns={'datetime': 'date_time'})
 
-        if timeframe == "1 month":
-            df['date_time'] = df['date_time'].apply(lambda x: x.replace(hour=0))
+                df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
 
-        df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
-
-        query = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);" .format(table_name +"_ticker_dt", table_name))
-        with db.connect() as conn:
-            conn.execute(query)
-
-        print("TOTAL TIME FOR DB: ", time.time() - start_time)
+                query = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);" .format(table_name +"_ticker_dt", table_name))
+                with db.connect() as conn:
+                    conn.execute(query)
 
     except Error as e:
         print(e)

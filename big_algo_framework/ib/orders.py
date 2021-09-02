@@ -12,7 +12,6 @@ class BIGOrders():
 
     def open_order(self, client, contract, order_id, order):
         now = datetime.now().strftime('%Y%m%d, %H:%M:%S')
-        print(now, " : order opened")
         client.placeOrder(order_id, contract, order)
         time.sleep(2)
 
@@ -103,8 +102,6 @@ class BIGOrders():
 
         for o in bracketOrder:
             client.placeOrder(o.orderId, contract, o)
-
-        print(order_dict)
 
     def ModifyStopLoss(self, client, contract, order_dict):
         parent = self.stopOrder(order_dict["orderId"],

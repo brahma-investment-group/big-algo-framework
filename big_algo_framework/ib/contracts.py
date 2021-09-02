@@ -16,7 +16,7 @@ class StockContract():
         totalRisk = order_dict["totalRisk"]
         riskPerShare = order_dict["riskPerShare"]
 
-        quantity = totalRisk/riskPerShare
+        quantity = int(totalRisk/riskPerShare)
         return quantity
 
 class ForexContract():

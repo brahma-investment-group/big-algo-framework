@@ -10,6 +10,33 @@ class BIGIBClient(EWrapper, EClient):
         EClient.__init__(self, self)
         self.db = createDB("market_data", "data/config.ini")
 
+        query1 = text("CREATE TABLE IF NOT EXISTS orders("
+                      "order_id BIGINT NOT NULL,"
+                      "perm_id BIGINT NOT NULL,"
+                      "ticker TEXT NOT NULL,"
+                      "order_type TEXT NOT NULL,"
+                      "action TEXT NOT NULL,"
+                      "limit_price DOUBLE PRECISION NOT NULL,"
+                      "stop_price DOUBLE PRECISION NOT NULL,"
+                      "order_status TEXT NOT NULL,"
+                      "filled DOUBLE PRECISION NOT NULL,"
+                      "remaining DOUBLE PRECISION NOT NULL,"
+                      "avg_fill_price DOUBLE PRECISION NOT NULL,"
+                      "parent_id BIGINT NOT NULL,"
+                      "last_fill_price DOUBLE PRECISION NOT NULL,"
+                      "client_id BIGINT NOT NULL,"
+                      "why_held TEXT NOT NULL,"
+                      "execution_time TEXT NOT NULL,"
+                      "order_ref TEXT NOT NULL);")
+
+        query2 = text("CREATE INDEX IF NOT EXISTS {} ON {} (order_id);".format("order_id", "orders"))
+
+        with self.db.connect() as conn:
+            conn.execute(query1)
+            conn.execute(query2)
+            conn.close()
+            self.db.dispose()
+
     def historicalData(self, reqId, bar):
         print("HistoricalData. ReqId:", reqId, "BarData.", bar)
 
@@ -35,6 +62,7 @@ class BIGIBClient(EWrapper, EClient):
 
     def openOrder(self, orderId, contract, order, orderState):
         super().openOrder(orderId, contract, order, orderState)
+
         data = dict(order_id=orderId,
                     perm_id=order.permId,
                     ticker=contract.symbol,
@@ -56,17 +84,18 @@ class BIGIBClient(EWrapper, EClient):
                     order_ref=""
                     )
 
-        df = pd.DataFrame(data=data)
-        df.to_sql("orders", self.db, if_exists='append', index=False, method='multi')
-        query = text("CREATE INDEX IF NOT EXISTS {} ON {} (order_id);".format("order_id", "orders"))
-        with self.db.connect() as conn:
-            conn.execute(query)
+        df = pd.DataFrame(data=data, index=[0])
+        o_id = pd.read_sql_query("select order_id from orders where order_id = {};" .format(orderId), con=self.db)
+
+        if orderId not in o_id.values:
+            df.to_sql("orders", self.db, if_exists='append', index=False, method='multi')
 
     def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        pd.read_sql_query("UPDATE orders SET "
-                          "(order_status, filled, remaining, avg_fill_price, parent_id, client_id, why_held) = "
-                          "(status, filled, remaining, avgFillPrice, parentId, clientId, whyHeld) "
-                          "WHERE order_id = orderId;", con=self.db)
+        sql_str = """UPDATE orders SET order_status = %s, filled = %s, remaining = %s, avg_fill_price = %s, parent_id = %s, client_id = %s, why_held = %s WHERE order_id = %s;"""
+        with self.db.connect() as conn:
+            conn.execute(sql_str, (status, filled, remaining, avgFillPrice, parentId, clientId, whyHeld, orderId))
+            conn.close()
+            self.db.dispose()
 
     def contractDetails(self, reqId, contractDetails):
         print("Contract Details: ", reqId, " ", contractDetails, "\n")
@@ -79,5 +108,8 @@ class BIGIBClient(EWrapper, EClient):
     def execDetails(self, reqId, contract, execution):
         super().execDetails(reqId, contract, execution)
 
-        pd.read_sql_query("UPDATE orders SET (execution_time, order_ref) = (execution.time, execution.orderRef) "
-                          "WHERE order_id = execution.orderId;", con=self.db)
+        sql_str = """UPDATE orders SET execution_time = %s, order_ref = %s WHERE order_id = %s;"""
+        with self.db.connect() as conn:
+            conn.execute(sql_str, (execution.time, execution.orderRef, execution.orderId))
+            conn.close()
+            self.db.dispose()

@@ -1,14 +1,9 @@
 import tda
-import configparser
 
 class tdHist:
-    def __init__(self, ticker, db, period, periodType, freq, freqType, timeframe, start_dt, end_dt, credentials_path='./ameritrade-credentials.json'):
-        config = configparser.ConfigParser()
-        config.read("config.ini")
-        tda_api = config['TDA_API']
-
-        self.api_key = tda_api["api_key"]
-        self.redirect_uri = tda_api["redirect_uri"]
+    def __init__(self, ticker, db, period, periodType, freq, freqType, timeframe, start_dt, end_dt, api_key, redirect_uri, credentials_path='./ameritrade-credentials.json'):
+        self.api_key = api_key
+        self.redirect_uri = redirect_uri
         self.credentials_path = credentials_path
         self.ticker = ticker
         self.db = db

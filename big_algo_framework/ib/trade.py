@@ -57,7 +57,7 @@ def closeOnEarnings(db, app):
     earnings_tickers = getEarningTickers()
 
     # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-    open_orders = pd.read_sql_query("select * from orders where order_type='STP LMT' and order_status IN ('PreSubmitted', 'Submitted'));", con=db)
+    open_orders = pd.read_sql_query("select * from orders where order_type='STP LMT' and order_status IN ('PreSubmitted', 'Submitted');", con=db)
 
     for ind in open_orders.index:
         ticker = open_orders['ticker'][ind]
@@ -70,7 +70,7 @@ def closeOnEarnings(db, app):
                 app.cancelOrder(order_id)
 
     # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
-    open_positions = pd.read_sql_query("select * from orders where order_type='LMT' and order_status IN ('PreSubmitted', 'Submitted'));", con=db)
+    open_positions = pd.read_sql_query("select * from orders where order_type='LMT' and order_status IN ('PreSubmitted', 'Submitted');", con=db)
 
     for ind in open_positions.index:
         ticker = open_positions['ticker'][ind]
