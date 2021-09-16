@@ -60,7 +60,3 @@ class TD(Data):
 
     def get_streaming_options_data(self):
         pass
-
-
-x = TD(["MSFT"], "ANFJZCL8HLAOEJERGC9CJENJPGUVFU60", "http://localhost:8080/")
-print(x.get_hist_equity_data())

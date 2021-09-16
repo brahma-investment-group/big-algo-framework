@@ -5,15 +5,18 @@ from ibapi.order import Order
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
+import pandas as pd
 
 class IB(Broker, EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
+        self.orderId = 0
 
     def initialize(self, client, order_dict):
         self.client = client
         self.order_dict = order_dict
 
+    def get_contract(self):
         self.contract = Contract()
         self.contract.symbol = self.order_dict["ticker"]
         self.contract.secType = self.order_dict["sec_type"]
@@ -30,60 +33,60 @@ class IB(Broker, EWrapper, EClient):
     #     self.client.placeOrder(order_id, contract, order)
     #     time.sleep(2)
 
-    def get_market_order(self, order_id):
+    def get_market_order(self, order_dict):
         market_order = Order()
-        market_order.orderId = order_id
-        market_order.action = self.order_dict["action"]
+        market_order.orderId = order_dict["mkt_order_id"]
+        market_order.action = order_dict["mkt_action"]
         market_order.orderType = 'MKT'
-        market_order.totalQuantity = self.order_dict["quantity"]
-        market_order.parentId = self.order_dict["parent_order_id"]
-        market_order.transmit = self.order_dict["transmit"]
+        market_order.totalQuantity = order_dict["mkt_quantity"]
+        market_order.parentId = order_dict["mkt_parent_order_id"]
+        market_order.transmit = order_dict["mkt_transmit"]
 
         # self.client.placeOrder(self.order_dict["order_id"], self.contract, market_order)
         return market_order
 
-    def get_stop_limit_order(self, order_id):
+    def get_stop_limit_order(self, order_dict):
         stop_limit_order = Order()
-        stop_limit_order.orderId = order_id
-        stop_limit_order.action = self.order_dict["action"]
+        stop_limit_order.orderId = order_dict["slo_order_id"]
+        stop_limit_order.action = order_dict["slo_action"]
         stop_limit_order.orderType = 'STP LMT'
-        stop_limit_order.totalQuantity = self.order_dict["quantity"]
-        stop_limit_order.lmtPrice = self.order_dict["limit_price"]
-        stop_limit_order.auxPrice = self.order_dict["stop_price"]
-        stop_limit_order.tif = self.order_dict["time_in_force"]
-        stop_limit_order.goodTillDate = self.order_dict["good_till_date"]
-        stop_limit_order.parentId = self.order_dict["parent_order_id"]
-        stop_limit_order.transmit = self.order_dict["transmit"]
+        stop_limit_order.totalQuantity = order_dict["slo_quantity"]
+        stop_limit_order.lmtPrice = order_dict["slo_limit_price"]
+        stop_limit_order.auxPrice = order_dict["slo_stop_price"]
+        stop_limit_order.tif = order_dict["slo_time_in_force"]
+        stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
+        stop_limit_order.parentId = order_dict["slo_parent_order_id"]
+        stop_limit_order.transmit = order_dict["slo_transmit"]
 
         # self.client.placeOrder(self.order_dict["order_id"], self.contract, stop_limit_order)
         return stop_limit_order
 
-    def get_limit_order(self, order_id):
+    def get_limit_order(self, order_dict):
         limit_order = Order()
-        limit_order.orderId = order_id
-        limit_order.action = self.order_dict["action"]
+        limit_order.orderId = order_dict["lo_order_id"]
+        limit_order.action = order_dict["lo_action"]
         limit_order.orderType = 'LMT'
-        limit_order.totalQuantity = self.order_dict["quantity"]
-        limit_order.lmtPrice = self.order_dict["limit_price"]
-        limit_order.tif = self.order_dict["time_in_force"]
-        limit_order.goodTillDate = self.order_dict["good_till_date"]
-        limit_order.parentId = self.order_dict["parent_order_id"]
-        limit_order.transmit = self.order_dict["transmit"]
+        limit_order.totalQuantity = order_dict["lo_quantity"]
+        limit_order.lmtPrice = order_dict["lo_limit_price"]
+        limit_order.tif = order_dict["lo_time_in_force"]
+        limit_order.goodTillDate = order_dict["lo_good_till_date"]
+        limit_order.parentId = order_dict["lo_parent_order_id"]
+        limit_order.transmit = order_dict["lo_transmit"]
 
         # self.client.placeOrder(self.order_dict["order_id"], self.contract, limit_order)
         return limit_order
 
-    def get_stop_order(self, order_id):
+    def get_stop_order(self, order_dict):
         stop_order = Order()
-        stop_order.orderId = order_id
-        stop_order.action = self.order_dict["action"]
+        stop_order.orderId = order_dict["so_order_id"]
+        stop_order.action = order_dict["so_action"]
         stop_order.orderType = 'STP'
-        stop_order.totalQuantity = self.order_dict["quantity"]
-        stop_order.auxPrice = self.order_dict["stop_price"]
-        stop_order.tif = self.order_dict["time_in_force"]
-        stop_order.goodTillDate = self.order_dict["good_till_date"]
-        stop_order.parentId = self.order_dict["parent_order_id"]
-        stop_order.transmit = self.order_dict["transmit"]
+        stop_order.totalQuantity = order_dict["so_quantity"]
+        stop_order.auxPrice = order_dict["so_stop_price"]
+        stop_order.tif = order_dict["so_time_in_force"]
+        stop_order.goodTillDate = order_dict["so_good_till_date"]
+        stop_order.parentId = order_dict["so_parent_order_id"]
+        stop_order.transmit = order_dict["so_transmit"]
 
         # self.client.placeOrder(self.order_dict["order_id"], self.contract, stop_order)
         return stop_order
@@ -94,27 +97,27 @@ class IB(Broker, EWrapper, EClient):
         for o in bracketOrder:
             self.client.placeOrder(o.orderId, self.contract, o)
 
-    def send_order(self, order):
-        self.client.placeOrder(self.order_dict["orderId"], self.contract, order)
-
-    def ib_callback_open_order(self):
-        pass
+    def send_order(self, order_dict, order):
+        self.client.placeOrder(order_dict["order_id"], self.contract, order)
 
     #######################################################################################################
     # IB SPECIFIC CALLBACK FUNCTIONS
     def nextValidId(self, orderId):
+        super().nextValidId(orderId)
+
         self.orderId = orderId
         time.sleep(1)
+        print("THIS IS IRDER ID FROM IB: ", orderId)
 
     def position(self, account, contract, position, avgCost):
         super().position(account, contract, position, avgCost)
+        print("PSOSOSOS")
 
     def positionEnd(self):
         super().positionEnd()
 
     def openOrder(self, orderId, contract, order, orderState):
         super().openOrder(orderId, contract, order, orderState)
-        self.ib_callback_open_order()
 
     def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId,
                     whyHeld, mktCapPrice):

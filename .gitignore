@@ -1,3 +1,4 @@
 venv/
 .idea/
 big_algo_framework/*/__pycache__/
+strategies/*
