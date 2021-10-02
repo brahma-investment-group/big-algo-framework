@@ -12,7 +12,7 @@ class IB(Broker, EWrapper, EClient):
         EClient.__init__(self, self)
         self.orderId = 0
 
-    def initialize(self, client, order_dict):
+    def init_client(self, client, order_dict):
         self.client = client
         self.order_dict = order_dict
 
@@ -23,6 +23,9 @@ class IB(Broker, EWrapper, EClient):
         self.contract.currency = self.order_dict["currency"]
         self.contract.exchange = self.order_dict["exchange"]
         self.contract.primaryExchange = self.order_dict["primary_exchange"]
+
+        print(self.contract)
+        return self.contract
 
     def getOrderID(self, client):
         client.reqIds(1)
@@ -91,8 +94,10 @@ class IB(Broker, EWrapper, EClient):
         # self.client.placeOrder(self.order_dict["order_id"], self.contract, stop_order)
         return stop_order
 
-    def send_bracket_order(self, parent_order, profit_order, stoploss_order):
-        bracketOrder = [parent_order, profit_order, stoploss_order]
+    def send_bracket_order(self, *orders):
+        bracketOrder = []
+        for x in orders:
+            bracketOrder.append(x)
 
         for o in bracketOrder:
             self.client.placeOrder(o.orderId, self.contract, o)
@@ -105,13 +110,8 @@ class IB(Broker, EWrapper, EClient):
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
 
-        self.orderId = orderId
-        time.sleep(1)
-        print("THIS IS IRDER ID FROM IB: ", orderId)
-
     def position(self, account, contract, position, avgCost):
         super().position(account, contract, position, avgCost)
-        print("PSOSOSOS")
 
     def positionEnd(self):
         super().positionEnd()
