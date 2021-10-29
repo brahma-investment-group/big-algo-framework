@@ -12,29 +12,22 @@ class IB(Broker, EWrapper, EClient):
         EClient.__init__(self, self)
         self.orderId = 0
 
-    def init_client(self, client, order_dict):
+    def init_client(self, client):
         self.client = client
-        self.order_dict = order_dict
 
-    def get_contract(self):
+    def get_contract(self, order_dict):
         self.contract = Contract()
-        self.contract.symbol = self.order_dict["ticker"]
-        self.contract.secType = self.order_dict["sec_type"]
-        self.contract.currency = self.order_dict["currency"]
-        self.contract.exchange = self.order_dict["exchange"]
-        self.contract.primaryExchange = self.order_dict["primary_exchange"]
+        self.contract.symbol = order_dict["ticker"]
+        self.contract.secType = order_dict["sec_type"]
+        self.contract.currency = order_dict["currency"]
+        self.contract.exchange = order_dict["exchange"]
+        self.contract.primaryExchange = order_dict["primary_exchange"]
 
-        print(self.contract)
         return self.contract
 
     def getOrderID(self, client):
         client.reqIds(1)
         time.sleep(1)
-
-    # def open_order(self, client, contract, order_id, order):
-    #     now = datetime.now().strftime('%Y%m%d, %H:%M:%S')
-    #     self.client.placeOrder(order_id, contract, order)
-    #     time.sleep(2)
 
     def get_market_order(self, order_dict):
         market_order = Order()
@@ -45,7 +38,6 @@ class IB(Broker, EWrapper, EClient):
         market_order.parentId = order_dict["mkt_parent_order_id"]
         market_order.transmit = order_dict["mkt_transmit"]
 
-        # self.client.placeOrder(self.order_dict["order_id"], self.contract, market_order)
         return market_order
 
     def get_stop_limit_order(self, order_dict):
@@ -61,7 +53,6 @@ class IB(Broker, EWrapper, EClient):
         stop_limit_order.parentId = order_dict["slo_parent_order_id"]
         stop_limit_order.transmit = order_dict["slo_transmit"]
 
-        # self.client.placeOrder(self.order_dict["order_id"], self.contract, stop_limit_order)
         return stop_limit_order
 
     def get_limit_order(self, order_dict):
@@ -76,7 +67,6 @@ class IB(Broker, EWrapper, EClient):
         limit_order.parentId = order_dict["lo_parent_order_id"]
         limit_order.transmit = order_dict["lo_transmit"]
 
-        # self.client.placeOrder(self.order_dict["order_id"], self.contract, limit_order)
         return limit_order
 
     def get_stop_order(self, order_dict):
@@ -91,7 +81,6 @@ class IB(Broker, EWrapper, EClient):
         stop_order.parentId = order_dict["so_parent_order_id"]
         stop_order.transmit = order_dict["so_transmit"]
 
-        # self.client.placeOrder(self.order_dict["order_id"], self.contract, stop_order)
         return stop_order
 
     def send_bracket_order(self, *orders):
@@ -109,6 +98,7 @@ class IB(Broker, EWrapper, EClient):
     # IB SPECIFIC CALLBACK FUNCTIONS
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
+        print(orderId)
 
     def position(self, account, contract, position, avgCost):
         super().position(account, contract, position, avgCost)

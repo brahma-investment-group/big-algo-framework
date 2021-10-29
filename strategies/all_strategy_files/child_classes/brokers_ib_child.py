@@ -5,14 +5,16 @@ class IbChild(IB):
         super().__init__()
         self.db = db
 
+        self.acc_dict = {}
+
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
 
         self.orderId = orderId
+        # print(orderId)
         time.sleep(1)
 
     def openOrder(self, orderId, contract, order, orderState):
-        print("Order ID from Open Order: ", orderId)
         super().openOrder(orderId, contract, order, orderState)
 
         sql_str = """INSERT INTO orders(order_id, perm_id, client_id, ticker, order_type, action, limit_price, stop_price, quantity, parent_id, time_in_force, oca_group, oca_type, trigger, rth, good_till_date, good_after_time)
@@ -44,8 +46,6 @@ class IbChild(IB):
             self.db.dispose()
 
     def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        print("Order ID from Order Status: ", orderId)
-
         super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId,
                             whyHeld, mktCapPrice)
 
@@ -114,3 +114,19 @@ class IbChild(IB):
 
         self.mintick = contractDetails.minTick
         self.conid = contractDetails.contract.conId
+
+        print("Min tick: ", self.mintick)
+
+    def updateAccountValue(self, key, val, currency, accountName):
+        super().updateAccountValue(key, val, currency, accountName)
+        # print("UpdateAccountValue. Key:", key, "Value:", val,
+        # "Currency:", currency, "AccountName:", accountName)
+
+    def accountSummary(self, reqId: int, account: str, tag: str, value: str, currency: str):
+        super().accountSummary(reqId, account, tag, value, currency)
+        # print("AccountSummary. ReqId:", reqId, "Account:", account,
+        # "Tag: ", tag, "Value:", value, "Currency:", currency)
+
+        self.acc_dict[tag] = value
+
+

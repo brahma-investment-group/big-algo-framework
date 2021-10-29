@@ -1,4 +1,15 @@
 venv/
 .idea/
 big_algo_framework/*/__pycache__/
-strategies/*
+
+
+strategies/all_strategy_files/data/ameritrade-credentials.json
+strategies/all_strategy_files/data/chromedriver.exe
+strategies/all_strategy_files/data/config.ini
+
+strategies/bb_rev/*
+
+strategies/tests/*
+
+strategies/test.py
+strategies/test_bb_rev.py

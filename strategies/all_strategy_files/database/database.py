@@ -51,12 +51,7 @@ def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
 
             if not df.empty:
                 df = df.rename(columns={'datetime': 'date_time'})
-
                 df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
-
-                query = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);" .format(table_name +"_ticker_dt", table_name))
-                with db.connect() as conn:
-                    conn.execute(query)
 
     except Error as e:
         print(e)

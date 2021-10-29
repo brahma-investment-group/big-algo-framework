@@ -1,9 +1,19 @@
-from abstract_data import Data
+from big_algo_framework.data.abstract_data import Data
 import tda
+from tda.streaming import StreamClient
+import asyncio
+from datetime import datetime, timedelta
+import pytz
+import pandas as pd
+from sqlalchemy import text
+import time
+import multiprocessing
+import threading
 
 class TD(Data):
-    def __init__(self, ticker, api_key, redirect_uri, credentials_path='./ameritrade-credentials.json'):
+    def __init__(self, ticker, api_key, account_id, redirect_uri, credentials_path='./ameritrade-credentials.json'):
         self.api_key = api_key
+        self.account_id =account_id
         self.redirect_uri = redirect_uri
         self.credentials_path = credentials_path
         self.ticker = ticker
@@ -32,7 +42,12 @@ class TD(Data):
         return response.json()
 
     def get_streaming_equity_data(self):
-        pass
+        async def main():
+            consumer = tdTimeSaleDataStreaming(self.ticker, self.api_key, self.account_id, self.redirect_uri)
+            consumer.initialize()
+            await consumer.stream()
+
+        asyncio.run(main())
 
     def get_hist_options_data(self, contract_type=None, strike_count=None, include_quotes=None, strategy=None, interval=None,
                               strike=None, strike_range=None, from_date=None, to_date=None, volatility=None,
@@ -60,3 +75,68 @@ class TD(Data):
 
     def get_streaming_options_data(self):
         pass
+
+class tdTimeSaleDataStreaming:
+    def __init__(self, tickers, api_key, account_id, redirect_uri, queue_size=0, credentials_path='./ameritrade-credentials.json'):
+        self.api_key = api_key
+        self.account_id = account_id
+        self.redirect_uri = redirect_uri
+        self.credentials_path = credentials_path
+        self.tda_client = None
+        self.stream_client = None
+        self.tickers = tickers
+
+        # Create a queue so we can queue up work gathered from the client
+        self.queue = asyncio.Queue(queue_size)
+
+    def initialize(self):
+        """
+        Create the clients and log in. Using easy_client, we can get new creds
+        from the user via the web browser if necessary
+        """
+        try:
+            self.tda_client = tda.auth.client_from_token_file(self.credentials_path, self.api_key)
+
+        except FileNotFoundError:
+            from selenium import webdriver
+
+            with webdriver.Chrome() as driver:
+                self.tda_client = tda.auth.client_from_login_flow(driver, self.api_key, self.redirect_uri, self.credentials_path)
+
+        self.stream_client = StreamClient(
+            self.tda_client, account_id=self.account_id)
+
+        # The streaming client wants you to add a handler for every service type
+        self.stream_client.add_timesale_equity_handler(
+            self.handle_timesale_equity)
+
+    async def stream(self):
+        await self.stream_client.login()  # Log into the streaming service
+        await self.stream_client.quality_of_service(StreamClient.QOSLevel.EXPRESS)
+        await self.stream_client.timesale_equity_subs(self.tickers)
+
+        # Kick off our handle_queue function as an independent coroutine
+        asyncio.ensure_future(self.handle_queue())
+
+        # Continuously handle inbound messages
+        while True:
+            await self.stream_client.handle_message()
+
+    async def handle_timesale_equity(self, msg):
+        """
+        This is where we take msgs from the streaming client and put them on a
+        queue for later consumption. We use a queue to prevent us from wasting
+        resources processing old data, and falling behind.
+        """
+        # if the queue is full, make room
+        if self.queue.full():  # This won't happen if the queue doesn't have a max size
+            print('Handler queue is full. Awaiting to make room... Some messages might be dropped')
+            await self.queue.get()
+        await self.queue.put(msg)
+
+    async def handle_queue(self):
+        """
+        Here we pull messages off the queue and process them.
+        """
+        while True:
+            await self.queue.get()

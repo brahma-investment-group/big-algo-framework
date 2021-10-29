@@ -1,21 +1,26 @@
-import datetime as dt
-from pandas.tseries.holiday import AbstractHolidayCalendar, Holiday, nearest_workday, \
-    USMartinLutherKingJr, USPresidentsDay, GoodFriday, USMemorialDay, \
-    USLaborDay, USThanksgivingDay
+import datetime
+from datetime import date
+import pandas_market_calendars as mcal
 
-class USTradingCalendar(AbstractHolidayCalendar):
-    rules = [
-        Holiday('NewYearsDay', month=1, day=1, observance=nearest_workday),
-        USMartinLutherKingJr,
-        USPresidentsDay,
-        GoodFriday,
-        USMemorialDay,
-        Holiday('USIndependenceDay', month=7, day=4, observance=nearest_workday),
-        USLaborDay,
-        USThanksgivingDay,
-        Holiday('Christmas', month=12, day=25, observance=nearest_workday)
-    ]
+def is_mkt_open(market):
+    """Check if markets are currently open using pandas_market_calendars"""
+    mkt_dict = {}
 
-def get_trading_close_holidays(year):
-    inst = USTradingCalendar()
-    return inst.holidays(dt.datetime(year - 1, 12, 31), dt.datetime(year, 12, 30))
+    trading_day = mcal.get_calendar(market).schedule(start_date=date.today(), end_date=date.today())
+    open_time = trading_day.iloc[0][0]
+    close_time = trading_day.iloc[0][1]
+
+    try:
+        if open_time < datetime.datetime.now(tz=datetime.timezone.utc) < close_time:
+            is_mkt_open = True
+        else:
+            is_mkt_open = False
+
+    except Exception:
+        is_mkt_open = False
+
+    mkt_dict = {"mkt_open": open_time,
+                "mkt_close": close_time,
+                "is_mkt_open": is_mkt_open}
+
+    return mkt_dict
