@@ -21,7 +21,12 @@ class IB(Broker, EWrapper, EClient):
         self.contract.secType = order_dict["sec_type"]
         self.contract.currency = order_dict["currency"]
         self.contract.exchange = order_dict["exchange"]
-        self.contract.primaryExchange = order_dict["primary_exchange"]
+        self.contract.primaryExchange = order_dict["primary_exchange"] #For options leave blank
+
+        self.contract.lastTradeDateOrContractMonth = order_dict["lastTradeDateOrContractMonth"]
+        self.contract.strike = order_dict["strike"]
+        self.contract.right = order_dict["right"]
+        self.contract.multiplier = order_dict["multiplier"]
 
         return self.contract
 
@@ -36,6 +41,8 @@ class IB(Broker, EWrapper, EClient):
         market_order.orderType = 'MKT'
         market_order.totalQuantity = order_dict["mkt_quantity"]
         market_order.parentId = order_dict["mkt_parent_order_id"]
+        market_order.tif = order_dict["mkt_time_in_force"]
+        market_order.goodTillDate = order_dict["mkt_good_till_date"]
         market_order.transmit = order_dict["mkt_transmit"]
 
         return market_order
@@ -91,8 +98,9 @@ class IB(Broker, EWrapper, EClient):
         for o in bracketOrder:
             self.client.placeOrder(o.orderId, self.contract, o)
 
-    def send_order(self, order_dict, order):
-        self.client.placeOrder(order_dict["order_id"], self.contract, order)
+    def send_order(self, order_dict, contract, order):
+        self.client.placeOrder(order_dict["order_id"], contract, order)
+        time.sleep(1)
 
     #######################################################################################################
     # IB SPECIFIC CALLBACK FUNCTIONS

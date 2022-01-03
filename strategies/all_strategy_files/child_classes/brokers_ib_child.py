@@ -115,8 +115,6 @@ class IbChild(IB):
         self.mintick = contractDetails.minTick
         self.conid = contractDetails.contract.conId
 
-        print("Min tick: ", self.mintick)
-
     def updateAccountValue(self, key, val, currency, accountName):
         super().updateAccountValue(key, val, currency, accountName)
         # print("UpdateAccountValue. Key:", key, "Value:", val,
@@ -128,5 +126,11 @@ class IbChild(IB):
         # "Tag: ", tag, "Value:", value, "Currency:", currency)
 
         self.acc_dict[tag] = value
+
+    def securityDefinitionOptionParameter(self, reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes):
+        super().securityDefinitionOptionParameter(reqId, exchange, underlyingConId, tradingClass, multiplier, expirations, strikes)
+        print("SecurityDefinitionOptionParameter.",
+        "ReqId:", reqId, "Exchange:", exchange, "Underlying conId:", underlyingConId, "TradingClass:", tradingClass, "Multiplier:", multiplier,
+        "Expirations:", expirations, "Strikes:", str(strikes))
 
 

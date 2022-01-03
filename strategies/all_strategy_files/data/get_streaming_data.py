@@ -2,6 +2,7 @@ from strategies.all_strategy_files.database.database import createDB
 from strategies.all_strategy_files.child_classes.data_td_child import TdChild
 from tickers import tickers
 import configparser
+from big_algo_framework.data.td import TD
 
 historic_data_table = "us_equity_historic_data"
 streaming_data_table = "us_equity_streaming_data"
@@ -22,4 +23,8 @@ act = TdChild(ticker=tickers,
               db=db,
               streaming_data_table=streaming_data_table)
 
-act.get_streaming_equity_data()
+while True:
+    try:
+        act.get_streaming_equity_data()
+    except:
+        pass

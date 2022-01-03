@@ -3,7 +3,7 @@ class PositionSizing():
         pass
 
     def stock_quantity(self, order_dict):
-        quantity = 10
+        quantity = 2
 
         # quantity = 0
         # available_capital = order_dict["available_capital"]

@@ -1,4 +1,4 @@
-from big_algo_framework.data.td import TD, tdTimeSaleDataStreaming
+from big_algo_framework.data.td import TD, tdChartEquityDataStreaming
 import asyncio
 from datetime import datetime
 import pandas as pd
@@ -16,13 +16,13 @@ class TdChild(TD):
 
     def get_streaming_equity_data(self):
         async def main():
-            consumer = tdTimeSaleDataStreamingChild(self.ticker, self.api_key, self.account_id, self.redirect_uri, self.db, self.streaming_data_table)
+            consumer = tdTChartEquityDataStreamingChild(self.ticker, self.api_key, self.account_id, self.redirect_uri, self.db, self.streaming_data_table)
             consumer.initialize()
             await consumer.stream()
 
         asyncio.run(main())
 
-class tdTimeSaleDataStreamingChild(tdTimeSaleDataStreaming):
+class tdTChartEquityDataStreamingChild(tdChartEquityDataStreaming):
     def __init__(self, tickers, api_key, account_id, redirect_uri, db, streaming_data_table, queue_size=0, credentials_path='./ameritrade-credentials.json'):
         super().__init__(tickers, api_key, account_id, redirect_uri, queue_size=0, credentials_path='./ameritrade-credentials.json')
 
@@ -38,23 +38,26 @@ class tdTimeSaleDataStreamingChild(tdTimeSaleDataStreaming):
 
         if msg.get('content'):
             for content in msg['content']:
+                now=datetime.datetime.now()
+                print(now, ": ", content)
                 cal = is_mkt_open('NYSE')
 
-                if cal["is_mkt_open"]:
-                    date_time = datetime.datetime.fromtimestamp(int(content['TRADE_TIME'] / 1000))
-                    date_time = date_time.replace(tzinfo=tz)
+                date_time = datetime.datetime.fromtimestamp(int(content['CHART_TIME'] / 1000))
+                date_time = date_time.replace(tzinfo=tz)
 
-                    if cal["mkt_open"].astimezone(local_tz) <= date_time <= cal["mkt_close"].astimezone(local_tz):
-                        d = {'ticker': content['key'],
-                             'date_time': content['TRADE_TIME'],
-                             'price': content['LAST_PRICE'],
-                             'volume': content['LAST_SIZE']}
+                print(content)
 
-                        streaming_list.append(d)
-
-        if streaming_list:
-            df = pd.DataFrame(data=streaming_list)
-            df.to_sql(self.streaming_data_table, self.db, if_exists='append', index=False, method='multi')
+        #         if cal["mkt_open"].astimezone(local_tz) <= date_time <= cal["mkt_close"].astimezone(local_tz):
+        #             d = {'ticker': content['key'],
+        #                  'date_time': content['TRADE_TIME'],
+        #                  'price': content['LAST_PRICE'],
+        #                  'volume': content['LAST_SIZE']}
+        #
+        #             streaming_list.append(d)
+        #
+        # if streaming_list:
+        #     df = pd.DataFrame(data=streaming_list)
+        #     df.to_sql(self.streaming_data_table, self.db, if_exists='append', index=False, method='multi')
 
     async def handle_queue(self):
         """
@@ -62,5 +65,6 @@ class tdTimeSaleDataStreamingChild(tdTimeSaleDataStreaming):
         """
         while True:
                 msg = await self.queue.get()
+                print('HA')
                 con_thread = threading.Thread(target=self.write_db(msg), daemon=True)
                 con_thread.start()

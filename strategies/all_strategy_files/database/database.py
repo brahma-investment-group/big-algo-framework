@@ -1,4 +1,4 @@
-from mysql.connector import connect, Error
+# from mysql.connector import connect, Error
 import psycopg2
 import time
 import numpy as np
@@ -35,7 +35,7 @@ def createDB(db_name, config_path):
 
         return db
 
-    except Error as e:
+    except Exception as e:
         print(e)
 
 def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
@@ -53,7 +53,7 @@ def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
                 df = df.rename(columns={'datetime': 'date_time'})
                 df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
 
-    except Error as e:
+    except Exception as e:
         print(e)
 
 def insertOptionsData(opt_df, db, options_data_table):
@@ -71,5 +71,5 @@ def insertOptionsData(opt_df, db, options_data_table):
         for row in rows:
             table.upsert(row, ['ticker', 'strike', 'date'])
 
-    except Error as e:
+    except Exception as e:
         print(e)

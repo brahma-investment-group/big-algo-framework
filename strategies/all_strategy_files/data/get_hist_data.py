@@ -48,7 +48,7 @@ td_tf = [{
 ]
 
 end_date = datetime.now()
-start_date = end_date - timedelta(weeks=25)
+start_date = end_date - timedelta(weeks=2)
 start_dt = datetime(year=start_date.year, month=start_date.month, day=start_date.day, hour=9, minute=30, second=00)
 end_dt = datetime(year=end_date.year, month=end_date.month, day=end_date.day, hour=16, minute=00, second=00)
 
@@ -58,6 +58,7 @@ yearly_start_dt = datetime(year=yearly_start_date.year, month=yearly_start_date.
 yearly_end_dt = datetime(year=yearly_end_date.year, month=yearly_end_date.month, day=yearly_end_date.day, hour=16, minute=00, second=00)
 
 for ticker in tickers:
+    print(ticker)
     act = TD(ticker=[ticker],
              api_key=api_key,
              account_id=account_id,

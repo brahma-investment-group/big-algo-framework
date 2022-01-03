@@ -4,6 +4,38 @@ class CreateTables():
     def __init__(self, db):
         self.db = db
 
+    def create_orb_dashboard(self):
+        query1 = text("CREATE TABLE IF NOT EXISTS orb("
+                      "parent_order_id BIGINT UNIQUE,"
+                      "profit_order_id BIGINT,"
+                      "stoploss_order_id BIGINT,"
+                      "entry_price DOUBLE PRECISION,"
+                      "sl_price DOUBLE PRECISION,"
+                      "tp1_price DOUBLE PRECISION,"
+                      "tp2_price DOUBLE PRECISION,"
+                      "risk_share DOUBLE PRECISION,"
+                      "cont_ticker CHARACTER VARYING,"
+                      "timeframe CHARACTER VARYING,"
+                      "date_time BIGINT,"
+                      "sec_type CHARACTER VARYING,"
+                      "cont_currency CHARACTER VARYING,"
+                      "cont_exchange CHARACTER VARYING,"
+                      "primary_exchange CHARACTER VARYING,"
+                      "stock_conid BIGINT,"
+                      "cont_date CHARACTER VARYING,"
+                      "strike DOUBLE PRECISION,"
+                      "opt_right CHARACTER VARYING,"
+                      "multiplier BIGINT,"
+                      "status CHARACTER VARYING);")
+
+        query2 = text("CREATE INDEX IF NOT EXISTS {} ON {} (parent_order_id);".format("parent_order_id", "orb"))
+
+        with self.db.connect() as conn:
+            conn.execute(query1)
+            conn.execute(query2)
+            conn.close()
+            self.db.dispose()
+
     def create_bb_rev_dashboard(self):
         query1 = text("CREATE TABLE IF NOT EXISTS bb_rev("
                       "parent_order_id BIGINT UNIQUE,"
@@ -17,6 +49,46 @@ class CreateTables():
                       "status CHARACTER VARYING);")
 
         query2 = text("CREATE INDEX IF NOT EXISTS {} ON {} (parent_order_id);".format("parent_order_id", "bb_rev"))
+
+        with self.db.connect() as conn:
+            conn.execute(query1)
+            conn.execute(query2)
+            conn.close()
+            self.db.dispose()
+
+    def create_strat_dashboard(self):
+        query1 = text("CREATE TABLE IF NOT EXISTS strat("
+                      "parent_order_id BIGINT UNIQUE,"
+                      "profit_order_id BIGINT,"
+                      "stoploss_order_id BIGINT,"
+                      "entry_price DOUBLE PRECISION,"
+                      "risk_share DOUBLE PRECISION,"
+                      "ticker CHARACTER VARYING,"
+                      "timeframe CHARACTER VARYING,"
+                      "date_time TIMESTAMP,"
+                      "today_vol DOUBLE PRECISION,"
+                      "five_day_avg_vol DOUBLE PRECISION,"
+                      "ten_day_avg_vol DOUBLE PRECISION,"
+                      "sixty_day_avg_vol DOUBLE PRECISION,"
+                      "is_bb_kc_squeeze CHARACTER VARYING,"
+                      "is_bb_ma_squeeze CHARACTER VARYING,"
+                      "bb_percentage DOUBLE PRECISION,"
+                      "rsi DOUBLE PRECISION,"
+                      "daily_price_change DOUBLE PRECISION,"
+                      "daily_atr_change DOUBLE PRECISION,"
+                      "add DOUBLE PRECISION,"
+                      "trin DOUBLE PRECISION,"
+                      "options_date CHARACTER VARYING,"
+                      "strike DOUBLE PRECISION,"
+                      "call_put_vol DOUBLE PRECISION,"
+                      "call_put_oi DOUBLE PRECISION,"
+                      "call_vol_oi DOUBLE PRECISION,"
+                      "put_call_vol DOUBLE PRECISION,"
+                      "put_call_oi DOUBLE PRECISION,"
+                      "put_vol_oi DOUBLE PRECISION,"
+                      "status CHARACTER VARYING);")
+
+        query2 = text("CREATE INDEX IF NOT EXISTS {} ON {} (parent_order_id);".format("parent_order_id", "strat"))
 
         with self.db.connect() as conn:
             conn.execute(query1)
@@ -148,10 +220,19 @@ class CreateTables():
             self.db.dispose()
 
     def create_us_equity_streaming_data(self):
+        # query1 = text("CREATE TABLE IF NOT EXISTS us_equity_streaming_data("
+        #               "ticker CHARACTER VARYING,"
+        #               "date_time BIGINT,"
+        #               "price DOUBLE PRECISION,"
+        #               "volume DOUBLE PRECISION);")
+
         query1 = text("CREATE TABLE IF NOT EXISTS us_equity_streaming_data("
                       "ticker CHARACTER VARYING,"
                       "date_time BIGINT,"
-                      "price DOUBLE PRECISION,"
+                      "open DOUBLE PRECISION,"
+                      "high DOUBLE PRECISION,"
+                      "low DOUBLE PRECISION,"
+                      "close DOUBLE PRECISION,"
                       "volume DOUBLE PRECISION);")
 
         query2 = text("CREATE INDEX IF NOT EXISTS {} ON {} (ticker, date_time);".format("us_equity_streaming_data_date_time", "us_equity_streaming_data"))
@@ -162,11 +243,13 @@ class CreateTables():
             conn.close()
             self.db.dispose()
 
-db = createDB("market_data", "../all_strategy_files/data/config.ini")
+db = createDB("market_data", "../data/config.ini")
 
 table = CreateTables(db)
 table.create_orders()
-table.create_bb_rev_dashboard()
+# table.create_bb_rev_dashboard()
+# table.create_strat_dashboard()
+table.create_orb_dashboard()
 table.create_us_equity_historic_data_1_min()
 table.create_us_equity_historic_data_30_mins()
 table.create_us_equity_historic_data_1_day()

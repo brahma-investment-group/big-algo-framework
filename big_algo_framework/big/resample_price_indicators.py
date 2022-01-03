@@ -24,15 +24,11 @@ class resample:
         hist_data = hist_data.set_index(['date_time'])
         hist_data.index = pd.to_datetime(hist_data.index, unit='ms')
 
-        #, utc=True)
-
         # Call the function responsible for fetching tick data and converting it to the base timeframe.
         # Then concat the historic df and streaming df
         tick_data = self.convert_tick_ohlc()
         data = pd.concat([hist_data, tick_data])
         data.reset_index(level=0, inplace=True)
-
-        pd.set_option('display.max_rows', None)
 
         price_ohlc = pd.DataFrame()
         if not data.empty:
@@ -56,22 +52,31 @@ class resample:
             "select * from {} where ticker = '{}'".format(self.streaming_data_table, self.tickers[0]),
             con=self.db).sort_values("date_time", ascending=True)
 
+        data = data.set_index(['date_time'])
+        data.index = pd.to_datetime(data.index, unit='ms')
+        data.reset_index(level=0, inplace=True)
+
         data_ask = pd.DataFrame()
         if not data.empty:
-            data = data.set_index(['date_time'])
-            data.index = pd.to_datetime(data.index, unit='ms')
-            data_ask = data.resample(self.tick_rule).agg({'price': 'ohlc', 'volume': 'sum'})
+            origin = ''
+            if self.is_origin:
+                origin = data['date_time'][0]
+
+
+            # data_ask = data.resample(self.tick_rule).agg({'price': 'ohlc', 'volume': 'sum'})
+            data_ask = data.resample(rule=self.rule, label='left', on='date_time', origin=origin).agg({'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last', 'volume': 'sum'})
+
             data_ask = data_ask.dropna()
 
             # Flattening the multi-index dataframe to a single level dataframe
-            data_ask.columns = data_ask.columns.to_series().str.join('')
+            # data_ask.columns = data_ask.columns.to_series().str.join('')
 
             # Renaming the columns for the dataframe
-            data_ask = data_ask.rename(columns={"priceopen": "open",
-                                                "pricehigh": "high",
-                                                "pricelow": "low",
-                                                "priceclose": "close",
-                                                "volumevolume": "volume"})
+            # data_ask = data_ask.rename(columns={"priceopen": "open",
+            #                                     "pricehigh": "high",
+            #                                     "pricelow": "low",
+            #                                     "priceclose": "close",
+            #                                     "volumevolume": "volume"})
 
             # Reset the index and append ticker/timeframe columns to the dataframe.
             # Convert the dataframe to dictionary.
