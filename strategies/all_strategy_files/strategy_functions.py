@@ -12,12 +12,6 @@ class StrategyFunctions():
         self.broker = broker
         self.strategy = strategy
 
-    # def get_child_order_id(self, parent_id):
-    #     child_order_id = pd.read_sql_query(
-    #         f"select order_id from orders where parent_id = {parent_id};",
-    #         con=self.db)
-    #     return child_order_id.values
-
     def set_strategy_status(self):
         #If its present, then set status to as per following
             #parent_order absent, child_order absent --> Open (DEFAULT WHEN INSERTING ROW)

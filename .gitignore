@@ -9,18 +9,11 @@ portfolio/*
 
 strategies/all_strategy_files/__pycache__/
 strategies/all_strategy_files/*/__pycache__/
-strategies/all_strategy_files/data/ameritrade-credentials.json
-strategies/all_strategy_files/data/chromedriver.exe
 strategies/all_strategy_files/data/config.ini
 
 strategies/__pycache__/
 strategies/*/__pycache__/
-strategies/bb_rev/*
-strategies/orb/*
-strategies/strat/*
-strategies/tests/*
 
-strategies/test_new.tos
 strategies/test.tos
 strategies/test_bb_rev.py
 

@@ -37,39 +37,3 @@ def createDB(db_name, config_path):
 
     except Exception as e:
         print(e)
-
-def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
-    """
-        Insert historic data into database
-    """
-    try:
-        table_name = historic_data_table + "_" + timeframe.replace(" ", "_")
-
-        if resp.get('candles'):
-            df = pd.DataFrame.from_dict(resp['candles'])
-            df['ticker'] = ticker
-
-            if not df.empty:
-                df = df.rename(columns={'datetime': 'date_time'})
-                df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
-
-    except Exception as e:
-        print(e)
-
-def insertOptionsData(opt_df, db, options_data_table):
-    """
-        Insert tdOptions data into database
-    """
-    #TODO: Later rewrite below code using sqlalchemy
-    try:
-        table = db[options_data_table]
-
-        opt_df = opt_df.replace(np.nan, 0)
-        opt_df = opt_df.replace([np.inf, -np.inf], 999999)
-        rows = opt_df.to_dict('records')
-
-        for row in rows:
-            table.upsert(row, ['ticker', 'strike', 'date'])
-
-    except Exception as e:
-        print(e)
