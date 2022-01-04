@@ -14,7 +14,7 @@ strategies/all_strategy_files/data/config.ini
 strategies/__pycache__/
 strategies/*/__pycache__/
 
-strategies/test.tos
+strategies/test.txt
 strategies/test_bb_rev.py
 
 ngrok.exe
