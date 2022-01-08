@@ -7,7 +7,7 @@ from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.orb.tv_orb import ORB
 from strategies.orb import tickers
-ib_connection = 2
+ib_connection = 3
 
 db = createDB("market_data", "strategies/all_strategy_files/data/config.ini")
 time.sleep(1)
@@ -56,7 +56,7 @@ def start_main(webhook_message):
     close_action = webhook_message['close_action']
 
 
-    order_dict = {"ticker": ticker,
+    order_dict = {"ticker": "MSFT",
                   "time_frame": time_frame,
                   "entry_time": entry_time,
 

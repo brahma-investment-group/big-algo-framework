@@ -58,10 +58,9 @@ class ORB(Strategy):
         self.close_action = self.order_dict["close_action"]
 
         # Derive gtd time
-        # entry_time = dateutil.parser.parse(self.entry_time)
+
         entry_time = datetime.fromtimestamp(self.entry_time/1000).astimezone(tz.gettz('America/New_York'))
-        self.gtd = entry_time + timedelta(minutes=5)
-        # self.gtd = entry_time + timedelta(minutes=self.time_frame)
+        self.gtd = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=10, minute=30, second=0)
 
         # Fetch options chain
         options_df = getOptions(self.ticker, 15)
@@ -129,7 +128,7 @@ class ORB(Strategy):
         x = True if self.direction == "Bullish" else False
         y = False if self.direction == "Bullish" else True
 
-        self.parent_order_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, x, self.entry)
+        self.parent_order_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, y, self.entry)
         self.sl_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, y, self.sl)
         self.tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, x, self.tp1)
         time.sleep(1)
