@@ -7,10 +7,13 @@ from datetime import datetime
 from pytz import timezone
 import pandas as pd
 from sqlalchemy import create_engine, text
+import os
 
 #CREATE DATABASE
 def createDB(db_name, config_path):
     try:
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.ini')
+
         config = configparser.ConfigParser()
         config.read(config_path)
         database = config['DATABASE']
@@ -36,4 +39,4 @@ def createDB(db_name, config_path):
         return db
 
     except Exception as e:
-        print(e)
+        print("Database Connection Error:", e)

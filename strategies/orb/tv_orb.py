@@ -58,7 +58,6 @@ class ORB(Strategy):
         self.close_action = self.order_dict["close_action"]
 
         # Derive gtd time
-
         entry_time = datetime.fromtimestamp(self.entry_time/1000).astimezone(tz.gettz('America/New_York'))
         self.gtd = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=10, minute=30, second=0)
 
@@ -240,18 +239,6 @@ class ORB(Strategy):
         if data_list:
             df = pd.DataFrame(data=data_list)
             df.to_sql(self.strategy, self.db, if_exists='append', index=False, method='multi')
-
-    def check_high_level_market_conditons(self):
-        #Not Needed
-        pass
-
-    def check_long_conditions(self):
-        #Not Needed
-        pass
-
-    def check_short_conditions(self):
-        #Not Needed
-        pass
 
     def execute(self):
         self.start()

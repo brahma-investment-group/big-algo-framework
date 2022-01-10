@@ -14,7 +14,7 @@ CONTENT_STYLE = {
 
 app = dash.Dash(external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-db = createDB("market_data", "../strategies/all_strategy_files/data/config.ini")
+db = createDB("market_data", "all_strategy_files/database/config.ini")
 time.sleep(1)
 
 # open_positions = pd.read_sql_query(

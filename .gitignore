@@ -9,7 +9,7 @@ portfolio/*
 
 strategies/all_strategy_files/__pycache__/
 strategies/all_strategy_files/*/__pycache__/
-strategies/all_strategy_files/data/config.ini
+strategies/all_strategy_files/database/config.ini
 
 strategies/__pycache__/
 strategies/*/__pycache__/

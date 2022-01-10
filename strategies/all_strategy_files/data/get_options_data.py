@@ -11,7 +11,7 @@ import json
 
 def getOptions(ticker, days_forward):
     config = configparser.ConfigParser()
-    config.read("strategies/all_strategy_files/data/config.ini")
+    config.read("strategies/all_strategy_files/database/config.ini")
     tda_api = config['TDA_API']
     api_key = tda_api["api_key"]
 

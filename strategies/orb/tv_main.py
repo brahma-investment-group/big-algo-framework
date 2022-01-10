@@ -1,5 +1,5 @@
 import threading
-
+import os
 from ibapi.account_summary_tags import AccountSummaryTags
 
 from strategies.orb import options_specifics
@@ -7,9 +7,11 @@ from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.orb.tv_orb import ORB
 from strategies.orb import tickers
+
+
 ib_connection = 3
 
-db = createDB("market_data", "strategies/all_strategy_files/data/config.ini")
+db = createDB("market_data", "../all_strategy_files/database/config.ini")
 time.sleep(1)
 
 broker = IbChild(db)
@@ -33,11 +35,6 @@ con_thread.start()
 time.sleep(30) #NEED 30 seconds to make sure broker starts to run before going through tickers!!!
 
 def start_main(webhook_message):
-    # i = 0
-    # while True:
-    #     if i == 0:
-    #         time.sleep(10)   #REMOVE THIS AND TRY!!!
-
     order_dict = dict()
     dashboard_dict = dict()
 
@@ -56,7 +53,7 @@ def start_main(webhook_message):
     close_action = webhook_message['close_action']
 
 
-    order_dict = {"ticker": "MSFT",
+    order_dict = {"ticker": ticker,
                   "time_frame": time_frame,
                   "entry_time": entry_time,
 
@@ -77,8 +74,12 @@ def start_main(webhook_message):
                   }
 
     print(datetime.now(), ": ", ticker)
-
     x = ORB(broker, ticker, db, order_dict)
     x.execute()
 
-        # i = i + 1
+def run_start():
+    order_dict = dict()
+    ticker = ""
+
+    y = ORB(broker, ticker, db, order_dict)
+    y.start()

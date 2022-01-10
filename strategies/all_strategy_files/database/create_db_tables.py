@@ -148,7 +148,7 @@ class CreateTables():
             self.db.dispose()
 
 
-db = createDB("market_data", "../data/config.ini")
+db = createDB("market_data", "config.ini")
 
 table = CreateTables(db)
 table.create_orders()
