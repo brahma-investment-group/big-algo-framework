@@ -1,38 +1,53 @@
-from datetime import timedelta, timezone, date
+from datetime import timedelta, timezone, datetime
 from random import randint
 from dateutil import tz
-import pytz
 
-from strategies.orb import options_specifics
-from big_algo_framework.big.calendar_us import *
 from big_algo_framework.big.position_sizing import PositionSizing
 from big_algo_framework.strategies.abstract_strategy import *
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
-from strategies.all_strategy_files.strategy_functions import *
+from strategies.all_strategy_files.all_strategies.strategy_functions import *
 from strategies.all_strategy_files.data.get_options_data import getOptions
 
 from ibapi.order_condition import PriceCondition
 
 class ORB(Strategy):
-    def __init__(self, broker, ticker, db, order_dict):
+    def __init__(self, order_dict):
         super().__init__()
-        self.strategy = "orb"
-
         self.is_position = False
         self.is_order = False
 
-        self.broker = broker
-        self.db = db
-        self.ticker = ticker
         self.order_dict = order_dict.copy()
         self.order_dict1 = order_dict.copy()
-
         self.dashboard_dict = {}
         self.dashboard_dict[1] = {}
         self.dashboard_dict[2] = {}
         self.con = ()
 
-        self.function = StrategyFunctions(self.db, self.ticker, self.broker, self.strategy)
+        self.broker = self.order_dict["broker"]
+        self.db = self.order_dict["db"]
+        self.ticker = self.order_dict["ticker"]
+        self.time_frame = self.order_dict["time_frame"]
+        self.entry_time = self.order_dict["entry_time"]
+        self.entry = self.order_dict["entry"]
+        self.sl = self.order_dict["sl"]
+        self.tp1 = self.order_dict["tp1"]
+        self.tp2 = self.order_dict["tp2"]
+        self.risk = self.order_dict["risk"]
+        self.direction = self.order_dict["direction"]
+        self.open_action = self.order_dict["open_action"]
+        self.close_action = self.order_dict["close_action"]
+        self.is_close = self.order_dict["is_close"]
+        self.sec_type = self.order_dict["sec_type"]
+        self.currency = self.order_dict["currency"]
+        self.exchange = self.order_dict["exchange"]
+        self.primary_exchange = self.order_dict["primary_exchange"]
+        self.orders_table = self.order_dict["orders_table"]
+        self.strategy_table = self.order_dict["strategy_table"]
+        self.account_no = self.order_dict["account_no"]
+        self.total_risk = self.order_dict["total_risk"]
+        self.total_risk_units = self.order_dict["total_risk_units"]
+
+        self.function = StrategyFunctions(self.db, self.ticker, self.broker, self.orders_table, self.strategy_table)
 
     def check_positions(self):
         if self.function.is_exist_positions():
@@ -41,25 +56,10 @@ class ORB(Strategy):
     def check_open_orders(self):
         self.is_order = True
 
-    def check_conditions(self):
-        # Assign variables from order_dict for easy reference
-        self.ticker = self.order_dict["ticker"]
-        self.time_frame = self.order_dict["time_frame"]
-        self.entry_time = self.order_dict["entry_time"]
-
-        self.entry = self.order_dict["entry"]
-        self.sl = self.order_dict["sl"]
-        self.tp1 = self.order_dict["tp1"]
-        self.tp2 = self.order_dict["tp2"]
-        self.risk = self.order_dict["risk"]
-
-        self.direction = self.order_dict["direction"]
-        self.open_action = self.order_dict["open_action"]
-        self.close_action = self.order_dict["close_action"]
-
+    def before_send_orders(self):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.entry_time/1000).astimezone(tz.gettz('America/New_York'))
-        self.gtd = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=10, minute=30, second=0)
+        self.gtd = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
 
         # Fetch options chain
         options_df = getOptions(self.ticker, 15)
@@ -72,6 +72,7 @@ class ORB(Strategy):
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[0]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[0]["strikePrice"]
             self.order_dict["right"] = 'C'
+            self.order_dict["ask_price"] = dff.iloc[0]["call_ask"]
 
         if self.direction == "Bearish":
             df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] > 2)]
@@ -80,6 +81,7 @@ class ORB(Strategy):
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-1]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[-1]["strikePrice"]
             self.order_dict["right"] = 'P'
+            self.order_dict["ask_price"] = dff.iloc[-1]["put_ask"]
 
         # Build order_dict and get the contract
         self.order_dict["primary_exchange"] = ""
@@ -91,9 +93,9 @@ class ORB(Strategy):
         # Form the stock_dict
         stock_dict = {"ticker": self.ticker,
                       "sec_type": "STK",
-                      "currency": self.order_dict["currency"],
-                      "exchange": self.order_dict["exchange"],
-                      "primary_exchange": self.order_dict["primary_exchange"],
+                      "currency": self.currency,
+                      "exchange": self.exchange,
+                      "primary_exchange": self.primary_exchange,
                       "lastTradeDateOrContractMonth": "",
                       "strike": "",
                       "right": "",
@@ -113,15 +115,9 @@ class ORB(Strategy):
         self.tp2 = self.tp2 - (self.tp2 % self.broker.mintick)
         self.sl = self.sl - (self.sl % self.broker.mintick)
 
-        # self.order_dict["available_capital"] = float(self.broker.acc_dict["AvailableFunds"]) #Need to convert to float
-        # self.order_dict["total_risk"] = 2                       #TODO: Later, put as input
-        # self.order_dict["total_risk_units"] = "percent"         #TODO: Later, put as input
-        # self.order_dict["risk_share"] = risk
-
         position = PositionSizing()
-        quantity = position.stock_quantity(self.order_dict)
-        self.quantity1 = quantity - int(quantity / 2)
-        quantity2 = int(quantity / 2)
+        quantity = position.options_quantity(self.order_dict)
+        self.quantity1 = quantity
 
         # Price/Time conditions
         x = True if self.direction == "Bullish" else False
@@ -141,10 +137,7 @@ class ORB(Strategy):
         self.function.set_strategy_status()
         self.check_trailing_stop()
 
-        cal = is_mkt_open(options_specifics.market)
-        now = datetime.now(tz=timezone.utc)
-
-        if cal["mkt_close"] - now < timedelta(minutes=15):
+        if self.is_close == 1:
             print("Closing Period")
             self.function.closeAllPositions()
 
@@ -223,10 +216,10 @@ class ORB(Strategy):
                         timeframe=self.time_frame,
                         date_time=self.entry_time/1000,
 
-                        sec_type=self.order_dict["sec_type"],
-                        cont_currency=self.order_dict["currency"],
-                        cont_exchange=self.order_dict["exchange"],
-                        primary_exchange=self.order_dict["primary_exchange"],
+                        sec_type=self.sec_type,
+                        cont_currency=self.currency,
+                        cont_exchange=self.exchange,
+                        primary_exchange=self.primary_exchange,
                         stock_conid=self.broker.conid,
                         cont_date=self.order_dict["lastTradeDateOrContractMonth"],
                         strike=self.order_dict["strike"],
@@ -238,15 +231,18 @@ class ORB(Strategy):
 
         if data_list:
             df = pd.DataFrame(data=data_list)
-            df.to_sql(self.strategy, self.db, if_exists='append', index=False, method='multi')
+            df.to_sql(self.strategy_table, self.db, if_exists='append', index=False, method='multi')
 
     def execute(self):
         self.start()
 
-        self.check_positions()
-        if self.is_position:
-            self.check_open_orders()
-            if self.is_order:
-                self.check_conditions()  #Rename function
-                self.send_orders()
-                self.after_send_orders()
+        if self.is_close == 0:
+            self.check_positions()
+            if self.is_position:
+                self.check_open_orders()
+                if self.is_order:
+                    self.before_send_orders()
+
+                    if self.quantity1 > 0:
+                        self.send_orders()
+                        self.after_send_orders()

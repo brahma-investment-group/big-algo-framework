@@ -1,17 +1,19 @@
+from pathlib import Path
 import configparser
 import datetime
-import time
 import pandas as pd
 import numpy as np
 import requests
-import arrow
 import time
-#from flatten_json import flatten
 import json
+import os
 
 def getOptions(ticker, days_forward):
+    current_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+    config_path = str(Path(current_path).parents[0]) + '\database\config.ini'
+
     config = configparser.ConfigParser()
-    config.read("strategies/all_strategy_files/database/config.ini")
+    config.read(config_path)
     tda_api = config['TDA_API']
     api_key = tda_api["api_key"]
 

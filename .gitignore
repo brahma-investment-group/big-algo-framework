@@ -3,13 +3,13 @@ venv/
 big_algo_framework/__pycache__/
 big_algo_framework/*/__pycache__/
 
-app/*
 AutoEC2/*
-portfolio/*
 
 strategies/all_strategy_files/__pycache__/
 strategies/all_strategy_files/*/__pycache__/
 strategies/all_strategy_files/database/config.ini
+
+strategies/orb/config.py
 
 strategies/__pycache__/
 strategies/*/__pycache__/

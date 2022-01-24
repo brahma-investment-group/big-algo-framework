@@ -1,24 +1,17 @@
-from sqlalchemy import inspect, text
+from sqlalchemy import text
 import pandas as pd
-import time
 from ibapi.order_condition import PriceCondition
-from random import randint
-
 
 class StrategyFunctions():
-    def __init__(self, db, ticker, broker, strategy):
+    def __init__(self, db, ticker, broker, orders_table, strategy_table):
         self.db = db
         self.ticker = ticker
         self.broker = broker
-        self.strategy = strategy
+        self.strategy_table = strategy_table
+        self.orders_table = orders_table
 
     def set_strategy_status(self):
-        #If its present, then set status to as per following
-            #parent_order absent, child_order absent --> Open (DEFAULT WHEN INSERTING ROW)
-            #parent_order present, child_order absent --> In Progress
-            #parent_order present, child_order present --> Closed
-
-        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {self.strategy} where status IN (' ', 'Open', 'In Progress') ;", con=self.db)
+        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {self.strategy_table} where status IN (' ', 'Open', 'In Progress') ;", con=self.db)
 
         closed_status = ['PendingCancel', 'ApiCancelled', 'Cancelled', 'Inactive']
         open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
@@ -31,27 +24,27 @@ class StrategyFunctions():
             profit_order_id = row['profit_order_id']
             stoploss_order_id = row['stoploss_order_id']
 
-            parent_order_status = pd.read_sql_query(f"select order_status from orders WHERE order_id = {parent_order_id};", con=self.db)
-            stoploss_order_status = pd.read_sql_query(f"select order_status from orders WHERE order_id = {stoploss_order_id};", con=self.db)
-            profit_order_status = pd.read_sql_query(f"select order_status from orders WHERE order_id = {profit_order_id};", con=self.db)
+            parent_order_status = pd.read_sql_query(f"select order_status from {self.orders_table} WHERE order_id = {parent_order_id};", con=self.db)
+            stoploss_order_status = pd.read_sql_query(f"select order_status from {self.orders_table} WHERE order_id = {stoploss_order_id};", con=self.db)
+            profit_order_status = pd.read_sql_query(f"select order_status from {self.orders_table} WHERE order_id = {profit_order_id};", con=self.db)
 
             if (parent_order_status.values in filled_status) and (stoploss_order_status.values in open_status or profit_order_status.values in open_status):
-                query = text(f"UPDATE {self.strategy} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
 
             elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in filled_status or profit_order_status.values in filled_status):
-                query = text(f"UPDATE {self.strategy} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in closed_status or profit_order_status.values in closed_status):
-                query = text(f"UPDATE {self.strategy} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif parent_order_status.values in closed_status:
-                query = text(f"UPDATE {self.strategy} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif parent_order_status.values in open_status:
-                query = text(f"UPDATE {self.strategy} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
 
             else:
-                query = text(f"UPDATE {self.strategy} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.strategy_table} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
 
             with self.db.connect() as conn:
                 conn.execute(query)
@@ -59,7 +52,7 @@ class StrategyFunctions():
                 self.db.dispose()
 
     def is_exist_positions(self):
-        ticker_pos = pd.read_sql_query(f"select cont_ticker from {self.strategy} where status IN ('Open', 'In Progress');", con=self.db)
+        ticker_pos = pd.read_sql_query(f"select cont_ticker from {self.strategy_table} where status IN ('Open', 'In Progress');", con=self.db)
 
         if self.ticker not in ticker_pos.values:
             return True
@@ -69,7 +62,7 @@ class StrategyFunctions():
 
     def closeAllPositions(self):
         # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-        open_orders = pd.read_sql_query(f"select parent_order_id from {self.strategy} WHERE status IN ('Open');", con=self.db)
+        open_orders = pd.read_sql_query(f"select parent_order_id from {self.strategy_table} WHERE status IN ('Open');", con=self.db)
 
         for ind in open_orders.index:
             order_id = open_orders['parent_order_id'][ind]
@@ -77,7 +70,7 @@ class StrategyFunctions():
 
         # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
         open_positions = pd.read_sql_query(
-            f"select * from orders LEFT OUTER JOIN orb ON {self.strategy}.profit_order_id = order_id WHERE {self.strategy}.status IN ('In Progress');", con=self.db)
+            f"select * from {self.orders_table} LEFT OUTER JOIN orb ON {self.strategy_table}.profit_order_id = order_id WHERE {self.strategy_table}.status IN ('In Progress');", con=self.db)
 
         for ind in open_positions.index:
             cont_ticker = open_positions.iloc[ind]['cont_ticker']
@@ -118,12 +111,13 @@ class StrategyFunctions():
 
                 "order_id": order_id
             }
-
+            #TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
             x = True if opt_right == "C" else False
+            price = 0 if opt_right == "C" else 99999
 
             pos_con = self.broker.get_contract(pos_order_dict)
 
-            tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, "")
+            tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
             mkt_order = self.broker.get_market_order(pos_order_dict)
             mkt_order.conditions.append(tp_price_condition)
 
