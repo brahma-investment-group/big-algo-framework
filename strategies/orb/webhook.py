@@ -1,9 +1,11 @@
+import time
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 import traceback
 import threading
 import datetime
-
+from ibapi.account_summary_tags import AccountSummaryTags
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.orb.strategy import ORB
@@ -32,10 +34,10 @@ time.sleep(1)
 broker.reqOpenOrders()
 time.sleep(1)
 
-# broker.reqAccountUpdates(True, '')
+# broker.reqAccountUpdates(True, account_no)
 
-# broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
-# time.sleep(1)
+broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
+time.sleep(1)
 
 def websocket_con():
     broker.run()

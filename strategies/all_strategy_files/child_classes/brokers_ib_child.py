@@ -89,7 +89,7 @@ class IbChild(IB):
     def commissionReport(self, commissionReport):
         super().commissionReport(commissionReport)
 
-        sql_str = f"INSERT INTO {self.orders_table}(exec_id, commission, currency, realized_pn) " \
+        sql_str = f"INSERT INTO {self.orders_table}(exec_id, commission, currency, realized_pnl) " \
                   f"VALUES('{commissionReport.execId}', {commissionReport.commission}, '{commissionReport.currency}', {commissionReport.realizedPNL}) " \
                   f"ON CONFLICT(exec_id) " \
                   f"DO UPDATE SET " \

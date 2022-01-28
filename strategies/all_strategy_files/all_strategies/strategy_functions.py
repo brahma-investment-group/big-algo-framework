@@ -70,7 +70,7 @@ class StrategyFunctions():
 
         # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
         open_positions = pd.read_sql_query(
-            f"select * from {self.orders_table} LEFT OUTER JOIN orb ON {self.strategy_table}.profit_order_id = order_id WHERE {self.strategy_table}.status IN ('In Progress');", con=self.db)
+            f"select * from {self.orders_table} LEFT OUTER JOIN {self.strategy_table} ON {self.strategy_table}.profit_order_id = order_id WHERE {self.strategy_table}.status IN ('In Progress');", con=self.db)
 
         for ind in open_positions.index:
             cont_ticker = open_positions.iloc[ind]['cont_ticker']

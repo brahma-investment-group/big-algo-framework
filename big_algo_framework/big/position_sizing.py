@@ -23,15 +23,13 @@ class PositionSizing():
 
         total_risk = order_dict["total_risk"]
         total_risk_units = order_dict["total_risk_units"]
-
+        available_capital = order_dict["available_capital"]
         price = order_dict["ask_price"] * 100
 
         if total_risk_units == "amount":
             quantity = int(total_risk / price)
 
         if total_risk_units == "percent":
-            pass
-
-        quantity = 1
+            quantity = int(total_risk * available_capital * 0.01 / price)
 
         return quantity

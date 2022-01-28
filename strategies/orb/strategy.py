@@ -6,9 +6,10 @@ from big_algo_framework.big.position_sizing import PositionSizing
 from big_algo_framework.strategies.abstract_strategy import *
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.all_strategies.strategy_functions import *
-from strategies.all_strategy_files.data.get_options_data import getOptions
+from strategies.all_strategy_files.data.get_options_data import *
 
 from ibapi.order_condition import PriceCondition
+import time
 
 class ORB(Strategy):
     def __init__(self, order_dict):
@@ -58,15 +59,32 @@ class ORB(Strategy):
 
     def before_send_orders(self):
         # Derive gtd time
-        entry_time = datetime.fromtimestamp(self.entry_time/1000).astimezone(tz.gettz('America/New_York'))
-        self.gtd = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
+        entry_time = datetime.datetime.fromtimestamp(self.entry_time/1000).astimezone(tz.gettz('America/New_York'))
+        self.gtd = datetime.datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
 
-        # Fetch options chain
-        options_df = getOptions(self.ticker, 15)
+        options_dict = {
+            "days_forward": 10,
+            "ticker": self.ticker,
+            "strike_count": '',
+            "include_quotes": "FALSE",
+            "strategy": "SINGLE",
+            "interval": '',
+            "strike": '',
+            "range": "OTM",
+            "volatility": '',
+            "underlying_price": '',
+            "interest_rate": '',
+            "days_to_expiration": '',
+            "exp_month": "ALL",
+            "option_type": "ALL"
+        }
 
         # Based on the direction, derive the OTM option price and build the order_dict
         if self.direction == "Bullish":
-            df = options_df.loc[(options_df['strikePrice'] >= self.entry) & (options_df['daysToExpiration'] > 2)]
+            options_dict["contract_type"] = "CALL"
+            options_df = getOptions1(options_dict)
+
+            df = options_df.loc[(options_df['strikePrice'] >= self.entry) & (options_df['daysToExpiration'] >= 2)]
             dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
 
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[0]["expirationDate"].strftime("%Y%m%d")
@@ -75,7 +93,10 @@ class ORB(Strategy):
             self.order_dict["ask_price"] = dff.iloc[0]["call_ask"]
 
         if self.direction == "Bearish":
-            df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] > 2)]
+            options_dict["contract_type"] = "PUT"
+            options_df = getOptions1(options_dict)
+
+            df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] >= 2)]
             dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
 
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-1]["expirationDate"].strftime("%Y%m%d")
@@ -115,6 +136,7 @@ class ORB(Strategy):
         self.tp2 = self.tp2 - (self.tp2 % self.broker.mintick)
         self.sl = self.sl - (self.sl % self.broker.mintick)
 
+        self.order_dict["available_capital"] = float(self.broker.acc_dict["AvailableFunds"])
         position = PositionSizing()
         quantity = position.options_quantity(self.order_dict)
         self.quantity1 = quantity

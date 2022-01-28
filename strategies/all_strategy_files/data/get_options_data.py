@@ -8,6 +8,84 @@ import time
 import json
 import os
 
+def getOptions1(options_dict):
+    current_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
+    config_path = str(Path(current_path).parents[0]) + '\database\config.ini'
+
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    tda_api = config['TDA_API']
+    api_key = tda_api["api_key"]
+
+    from_date = datetime.date.today()
+    to_date = from_date + datetime.timedelta(days=options_dict["days_forward"])
+
+    endpoint = f'https://api.tdameritrade.com/v1/marketdata/chains?' \
+               f'&symbol={options_dict["ticker"]}&' \
+               f'contractType={options_dict["contract_type"]}&' \
+               f'strikeCount={options_dict["strike_count"]}&'\
+               f'includeQuotes={options_dict["include_quotes"]}&' \
+               f'strategy={options_dict["strategy"]}&' \
+               f'interval={options_dict["interval"]}&' \
+               f'strike={options_dict["strike"]}&' \
+               f'range={options_dict["range"]}&' \
+               f'fromDate={from_date}&' \
+               f'toDate={to_date}&' \
+               f'volatility={options_dict["volatility"]}&' \
+               f'underlyingPrice={options_dict["underlying_price"]}&' \
+               f'interestRate={options_dict["interest_rate"]}&' \
+               f'daysToExpiration={options_dict["days_to_expiration"]}&' \
+               f'expMonth={options_dict["exp_month"]}&' \
+               f'optionType={options_dict["option_type"]}' \
+
+    page = requests.get(url=endpoint, params={'apikey': api_key})
+    time.sleep(1)
+    content = json.loads(page.content)
+    # print(content)
+
+    call_options = pd.DataFrame()
+    put_options = pd.DataFrame()
+
+    if options_dict["contract_type"]=="CALL" and content["callExpDateMap"]:
+        for date in content["callExpDateMap"]:
+            for strike in content["callExpDateMap"][date]:
+                for data in content["callExpDateMap"][date][strike]:
+                    call_options = call_options.append({
+                        'strikePrice': data["strikePrice"],
+                        'expirationDate': data["expirationDate"],
+                        'daysToExpiration': data["daysToExpiration"],
+                        'call': data["putCall"],
+                        'call_bid': data["bid"],
+                        'call_ask': data["ask"],
+                        'call_multiplier': data["multiplier"]},
+                        ignore_index=True)
+
+        call_options['expirationDate'] = pd.to_datetime(call_options['expirationDate'], unit="ms")
+
+        return call_options
+
+    if options_dict["contract_type"] == "PUT" and content["putExpDateMap"]:
+        for date in content["putExpDateMap"]:
+            for strike in content["putExpDateMap"][date]:
+                for data in content["putExpDateMap"][date][strike]:
+                    put_options = put_options.append({
+                        'strikePrice': data["strikePrice"],
+                        'expirationDate': data["expirationDate"],
+                        'daysToExpiration': data["daysToExpiration"],
+                        'put': data["putCall"],
+                        'put_bid': data["bid"],
+                        'put_ask': data["ask"],
+                        'put_multiplier': data["multiplier"]},
+                        ignore_index=True)
+
+        put_options['expirationDate'] = pd.to_datetime(put_options['expirationDate'], unit="ms")
+
+        return put_options
+
+
+    else:
+        return call_options
+
 def getOptions(ticker, days_forward):
     current_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
     config_path = str(Path(current_path).parents[0]) + '\database\config.ini'
