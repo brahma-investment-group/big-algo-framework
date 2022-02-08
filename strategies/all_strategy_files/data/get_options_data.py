@@ -57,6 +57,7 @@ def getOptions1(options_dict):
                         'call': data["putCall"],
                         'call_bid': data["bid"],
                         'call_ask': data["ask"],
+                        'call_delta': data["delta"],
                         'call_multiplier': data["multiplier"]},
                         ignore_index=True)
 
@@ -75,6 +76,7 @@ def getOptions1(options_dict):
                         'put': data["putCall"],
                         'put_bid': data["bid"],
                         'put_ask': data["ask"],
+                        'put_delta': data["delta"],
                         'put_multiplier': data["multiplier"]},
                         ignore_index=True)
 

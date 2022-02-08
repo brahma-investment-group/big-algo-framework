@@ -37,7 +37,6 @@ broker.reqPositions()
 time.sleep(1)
 broker.reqOpenOrders()
 time.sleep(1)
-
 broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
 time.sleep(1)
 
@@ -47,6 +46,10 @@ def websocket_con():
 con_thread = threading.Thread(target=websocket_con, daemon=True)
 con_thread.start()
 time.sleep(30) #NEED 30 seconds to make sure broker starts to run before going through tickers!!!
+
+broker.reqIds(1)
+time.sleep(1)
+config.OID = broker.orderId
 
 app = FastAPI()
 q = queue.Queue()

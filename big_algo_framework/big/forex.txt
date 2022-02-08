@@ -1,0 +1,21 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © nagabrahmam
+
+//@version=5
+// INDICATOR
+indicator("Forex PS", overlay=true)
+
+
+var string acc_curr = "CHF"
+var float sl = 200
+var float risk = 50
+
+conv_curr = input("CHFJPY", "Source")
+conv_curr_price = request.security(conv_curr, '5', close)
+
+risk_conv_curr = risk*conv_curr_price
+risk_conv_curr_pips = risk_conv_curr/sl
+
+lots = risk_conv_curr_pips*100
+
+plot(lots)

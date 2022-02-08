@@ -7,6 +7,7 @@ from big_algo_framework.strategies.abstract_strategy import *
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.all_strategies.strategy_functions import *
 from strategies.all_strategy_files.data.get_options_data import *
+from strategies.orb import config
 
 from ibapi.order_condition import PriceCondition
 import time
@@ -45,7 +46,7 @@ class ORB(Strategy):
         self.orders_table = self.order_dict["orders_table"]
         self.strategy_table = self.order_dict["strategy_table"]
 
-        self.function = StrategyFunctions(self.db, self.ticker, self.broker, self.orders_table, self.strategy_table)
+        self.function = StrategyFunctions(self.db, self.ticker, self.broker, self.order_dict, self.orders_table, self.strategy_table)
 
     def check_positions(self):
         if self.function.is_exist_positions():
@@ -90,6 +91,7 @@ class ORB(Strategy):
                 self.order_dict["strike"] = dff.iloc[0]["strikePrice"]
                 self.order_dict["right"] = 'C'
                 self.order_dict["ask_price"] = dff.iloc[0]["call_ask"]
+                self.order_dict["delta"] = dff.iloc[0]["call_delta"]
 
             if self.direction == "Bearish":
                 options_dict["contract_type"] = "PUT"
@@ -102,6 +104,7 @@ class ORB(Strategy):
                 self.order_dict["strike"] = dff.iloc[-1]["strikePrice"]
                 self.order_dict["right"] = 'P'
                 self.order_dict["ask_price"] = dff.iloc[-1]["put_ask"]
+                self.order_dict["delta"] = dff.iloc[-1]["put_delta"]
 
             # Build order_dict and get the contract
             self.order_dict["primary_exchange"] = ""
@@ -138,6 +141,9 @@ class ORB(Strategy):
         self.order_dict["available_capital"] = float(self.broker.acc_dict["AvailableFunds"])
         position = PositionSizing()
         if self.sec_type == "OPT":
+            self.order_dict["risk_contract"] = abs((self.entry-self.sl)*self.order_dict["delta"])
+            print("DELTA: ", self.order_dict["delta"])
+            print("RISK/CONT: ", self.order_dict["risk_contract"])
             quantity = position.options_quantity(self.order_dict)
         if self.sec_type == "STK":
             self.order_dict["risk_share"] = abs(self.entry-self.sl)
@@ -167,11 +173,10 @@ class ORB(Strategy):
 
     def send_orders(self):
         # Parent Order for Order 1
-        self.broker.reqIds(1)
-        time.sleep(1)
+        config.OID = config.OID + 1
 
-        self.order_dict["order_id"] = self.broker.orderId
-        self.order_dict["mkt_order_id"] = self.broker.orderId
+        self.order_dict["order_id"] = config.OID
+        self.order_dict["mkt_order_id"] = config.OID
         parent_id = self.order_dict["mkt_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
 
@@ -187,11 +192,10 @@ class ORB(Strategy):
         self.broker.send_order(self.order_dict, self.con, order)
 
         # Stoploss Order for Order 1
-        self.broker.reqIds(1)
-        time.sleep(1)
+        config.OID = config.OID + 1
 
-        self.order_dict["order_id"] = self.broker.orderId
-        self.order_dict["mkt_order_id"] = self.broker.orderId
+        self.order_dict["order_id"] = config.OID
+        self.order_dict["mkt_order_id"] = config.OID
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
@@ -206,11 +210,10 @@ class ORB(Strategy):
         self.broker.send_order(self.order_dict, self.con, order)
 
         # Profit Order for Order 1
-        self.broker.reqIds(1)
-        time.sleep(1)
+        config.OID = config.OID + 1
 
-        self.order_dict["order_id"] = self.broker.orderId
-        self.order_dict["mkt_order_id"] = self.broker.orderId
+        self.order_dict["order_id"] = config.OID
+        self.order_dict["mkt_order_id"] = config.OID
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
 

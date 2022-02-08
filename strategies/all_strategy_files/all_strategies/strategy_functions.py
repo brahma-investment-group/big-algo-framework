@@ -3,10 +3,11 @@ import pandas as pd
 from ibapi.order_condition import PriceCondition
 
 class StrategyFunctions():
-    def __init__(self, db, ticker, broker, orders_table, strategy_table):
+    def __init__(self, db, ticker, broker, order_dict, orders_table, strategy_table):
         self.db = db
         self.ticker = ticker
         self.broker = broker
+        self.order_dict = order_dict
         self.strategy_table = strategy_table
         self.orders_table = orders_table
 
@@ -107,6 +108,7 @@ class StrategyFunctions():
                 "mkt_parent_order_id": "",
                 "mkt_time_in_force": "",
                 "mkt_good_till_date": "",
+                "account_no": self.order_dict["account_no"],
                 "mkt_transmit": True,
 
                 "order_id": order_id
