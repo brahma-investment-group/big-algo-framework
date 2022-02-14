@@ -113,6 +113,10 @@ class ORB(Strategy):
         # Request the contract for the asset that we are trading
         self.con = self.broker.get_contract(self.order_dict)
         time.sleep(1)
+        # Using the underlying contract, request details like mintick
+        self.broker.reqContractDetails(randint(0, 10000), self.con)
+        time.sleep(1)
+        options_min_tick = self.broker.mintick
 
         # Form the dictionary for the underlying and get the contract
         stock_dict = {"ticker": self.ticker,
@@ -126,36 +130,43 @@ class ORB(Strategy):
                       "multiplier": ""}
         stock_contract = self.broker.get_contract(stock_dict)
         time.sleep(1)
-
         # Using the underlying contract, request details like mintick
         self.broker.reqContractDetails(randint(0, 10000), stock_contract)
         time.sleep(1)
+        stocks_min_tick = self.broker.mintick
+
 
         # Adjust the entry/sl/tp to take into account the mintick
-        self.entry = self.entry - (self.entry % self.broker.mintick)
-        self.tp1 = self.tp1 - (self.tp1 % self.broker.mintick)
-        self.tp2 = self.tp2 - (self.tp2 % self.broker.mintick)
-        self.sl = self.sl - (self.sl % self.broker.mintick)
+        self.entry = self.entry - (self.entry % stocks_min_tick)
 
         # Position Sizing
         self.order_dict["available_capital"] = float(self.broker.acc_dict["AvailableFunds"])
         position = PositionSizing()
+
         if self.sec_type == "OPT":
             self.order_dict["risk_contract"] = abs((self.entry-self.sl)*self.order_dict["delta"])
+
+            # Currently TP/SL are for bullish cases. Later stage add cases for bearish cases (Options selling). See Issue #10
+            self.tp1 = self.order_dict["ask_price"] + self.order_dict["risk_contract"]
+            self.sl = self.order_dict["ask_price"] - self.order_dict["risk_contract"]
+            self.tp1 = self.tp1 - (self.tp1 % options_min_tick)
+            self.sl = self.sl - (self.sl % options_min_tick)
+
             print("DELTA: ", self.order_dict["delta"])
             print("RISK/CONT: ", self.order_dict["risk_contract"])
             quantity = position.options_quantity(self.order_dict)
+
         if self.sec_type == "STK":
             self.order_dict["risk_share"] = abs(self.entry-self.sl)
+            self.tp1 = self.tp1 - (self.tp1 % stocks_min_tick)
+            self.sl = self.sl - (self.sl % stocks_min_tick)
             quantity = position.stock_quantity(self.order_dict)
         self.quantity1 = quantity
 
         # Price/Time conditions
-        x = True if self.direction == "Bullish" else False
+        x = True if self.direction == "Bullish" else False   #Not using it anywhere
         y = False if self.direction == "Bullish" else True
         self.parent_order_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, y, self.entry)
-        self.sl_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, y, self.sl)
-        self.tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, self.broker.conid, stock_contract.exchange, x, self.tp1)
         time.sleep(1)
 
     def check_trailing_stop(self):
@@ -163,9 +174,7 @@ class ORB(Strategy):
 
     def start(self):
         self.broker.init_client(self.broker)
-
         self.function.set_strategy_status()
-        self.check_trailing_stop()
 
         if self.is_close == 1:
             print("Closing Period")
@@ -195,36 +204,36 @@ class ORB(Strategy):
         config.OID = config.OID + 1
 
         self.order_dict["order_id"] = config.OID
-        self.order_dict["mkt_order_id"] = config.OID
-        self.order_dict["mkt_parent_order_id"] = parent_id
+        self.order_dict["so_order_id"] = config.OID
+        self.order_dict["so_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
-        self.order_dict["mkt_action"] = self.close_action
-        self.order_dict["mkt_quantity"] = self.quantity1
-        self.order_dict["mkt_time_in_force"] = "GTC"
-        self.order_dict["mkt_good_till_date"] = ""
-        self.order_dict["mkt_transmit"] = False
+        self.order_dict["so_action"] = self.close_action
+        self.order_dict["so_quantity"] = self.quantity1
+        self.order_dict["so_stop_price"] = self.sl
+        self.order_dict["so_time_in_force"] = "GTC"
+        self.order_dict["so_good_till_date"] = ""
+        self.order_dict["so_transmit"] = False
 
-        order = self.broker.get_market_order(self.order_dict)
-        order.conditions.append(self.sl_price_condition)
+        order = self.broker.get_stop_order(self.order_dict)
         self.broker.send_order(self.order_dict, self.con, order)
 
         # Profit Order for Order 1
         config.OID = config.OID + 1
 
         self.order_dict["order_id"] = config.OID
-        self.order_dict["mkt_order_id"] = config.OID
-        self.order_dict["mkt_parent_order_id"] = parent_id
+        self.order_dict["lo_order_id"] = config.OID
+        self.order_dict["lo_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
 
-        self.order_dict["mkt_action"] = self.close_action
-        self.order_dict["mkt_quantity"] = self.quantity1
-        self.order_dict["mkt_time_in_force"] = "GTC"
-        self.order_dict["mkt_good_till_date"] = ""
-        self.order_dict["mkt_transmit"] = True
+        self.order_dict["lo_action"] = self.close_action
+        self.order_dict["lo_quantity"] = self.quantity1
+        self.order_dict["lo_limit_price"] = self.tp1
+        self.order_dict["lo_time_in_force"] = "GTC"
+        self.order_dict["lo_good_till_date"] = ""
+        self.order_dict["lo_transmit"] = True
 
-        order = self.broker.get_market_order(self.order_dict)
-        order.conditions.append(self.tp_price_condition)
+        order = self.broker.get_limit_order(self.order_dict)
         self.broker.send_order(self.order_dict, self.con, order)
 
     def after_send_orders(self):

@@ -1,4 +1,3 @@
-import time
 import queue
 
 from fastapi import FastAPI
@@ -10,8 +9,8 @@ from ibapi.account_summary_tags import AccountSummaryTags
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.orb.strategy import ORB
-from strategies.all_strategy_files.all_strategies import tickers
 from strategies.orb import config
+from strategies.orb.twitter import send_alert
 
 # CONFIG INPUTS
 orders_table = config.database["orders_table"]
@@ -67,11 +66,11 @@ def run_queue():
 
         try:
             print("Webhook Recieved:", webhook_message.dict())
-            ticker = webhook_message.ticker
 
             order_dict = {"broker": broker,
                           "db": db,
-                          "ticker": ticker,
+                          "ticker": webhook_message.ticker,
+                          "primary_exchange": webhook_message.exchange,
                           "time_frame": webhook_message.time_frame,
                           "entry_time": webhook_message.entry_time,
                           "entry": webhook_message.entry,
@@ -86,7 +85,6 @@ def run_queue():
                           "sec_type": sec_type,
                           "currency": currency,
                           "exchange": exchange,
-                          "primary_exchange": tickers.ticker_universe[ticker]["primary_exchange"],
                           "lastTradeDateOrContractMonth": "",
                           "strike": 0.0,
                           "right": "",
@@ -99,7 +97,7 @@ def run_queue():
                           "total_risk_units": total_risk_units,
                           }
 
-            print(datetime.datetime.now(), ": ", ticker)
+            print(datetime.datetime.now(), ": ", order_dict["ticker"])
             x = ORB(order_dict)
             x.execute()
 
@@ -120,6 +118,7 @@ queue_thread.start()
 
 class webhook_message(BaseModel):
     ticker: str
+    exchange: str
     time_frame: float
     entry_time: int
     entry: float
@@ -140,3 +139,21 @@ async def root():
 @app.post('/orb/options')
 async def orb_options(webhook_message: webhook_message):
     q.put(webhook_message)
+
+@app.post('/twitter')
+def webhook(webhook_message: webhook_message):
+
+    if webhook_message.passphrase != config.webhook["passphrase"]:
+        return {
+            "status": "fail",
+            "code": "401",
+            "message": "Invalid passphrase"
+        }
+
+    try:
+        time.sleep(1800)
+        send_alert(webhook_message)
+
+    except Exception as e:
+        print("[X]", "Error:\n>", e)
+        return "Error", 400
