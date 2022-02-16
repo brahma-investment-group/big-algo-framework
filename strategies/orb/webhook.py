@@ -12,43 +12,12 @@ from strategies.orb.strategy import ORB
 from strategies.orb import config
 from strategies.orb.twitter import send_alert
 
-# CONFIG INPUTS
-orders_table = config.database["orders_table"]
-strategy_table = config.database["strategy_table"]
-database_name = config.database["database_name"]
-account_no = config.ib_account["account_no"]
-ip_address = config.ib_account["ip_address"]
-port = config.ib_account["port"]
-ib_client = config.ib_account["ib_client"]
-total_risk = config.risk_param["total_risk"]
-total_risk_units = config.risk_param["total_risk_units"]
-sec_type = config.contract["sec_type"]
-currency = config.contract["currency"]
-exchange = config.contract["exchange"]
+broker_2 = None
 
-db = createDB(database_name)
-time.sleep(1)
-
-broker = IbChild(db, orders_table)
-broker.connect(ip_address, port, ib_client)
-time.sleep(1)
-broker.reqPositions()
-time.sleep(1)
-broker.reqOpenOrders()
-time.sleep(1)
-broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
-time.sleep(1)
-
-def websocket_con():
+def websocket_con(broker):
     broker.run()
 
-con_thread = threading.Thread(target=websocket_con, daemon=True)
-con_thread.start()
-time.sleep(30) #NEED 30 seconds to make sure broker starts to run before going through tickers!!!
 
-broker.reqIds(1)
-time.sleep(1)
-config.OID = broker.orderId
 
 app = FastAPI()
 q = queue.Queue()
@@ -67,7 +36,44 @@ def run_queue():
         try:
             print("Webhook Recieved:", webhook_message.dict())
 
-            order_dict = {"broker": broker,
+            # CONFIG INPUTS
+            orders_table = config.database["orders_table"]
+            strategy_table = config.database["strategy_table"]
+            database_name = config.database["database_name"]
+            account_no = config.ib_account["account_no"]
+            ip_address = config.ib_account["ip_address"]
+            port = config.ib_account["port"]
+            ib_client = config.ib_account["ib_client"]
+            total_risk = config.risk_param["total_risk"]
+            total_risk_units = config.risk_param["total_risk_units"]
+            sec_type = config.contract["sec_type"]
+            currency = config.contract["currency"]
+            exchange = config.contract["exchange"]
+
+            db = createDB(database_name)
+            time.sleep(1)
+
+            global broker_2
+            if (broker_2 == None) or (not broker_2.isConnected()):
+                broker_2 = IbChild(db, orders_table)
+                broker_2.connect(ip_address, port, ib_client)
+                time.sleep(1)
+                broker_2.reqPositions()
+                time.sleep(1)
+                broker_2.reqOpenOrders()
+                time.sleep(1)
+                broker_2.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
+                time.sleep(1)
+
+                con_thread = threading.Thread(target=websocket_con, args=(broker_2,), daemon=True)
+                con_thread.start()
+                time.sleep(1)  # NEED 30 seconds to make sure broker starts to run before fetching ID!!!
+
+                broker_2.reqIds(1)
+                time.sleep(1)
+                config.OID = broker_2.orderId
+
+            order_dict = {"broker": broker_2,
                           "db": db,
                           "ticker": webhook_message.ticker,
                           "primary_exchange": webhook_message.exchange,
