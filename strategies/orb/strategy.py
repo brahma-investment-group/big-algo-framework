@@ -177,10 +177,10 @@ class ORB(Strategy):
 
     def send_orders(self):
         # Parent Order for Order 1
-        config.OID = config.OID + 1
+        config.orb_oid = config.orb_oid + 1
 
-        self.order_dict["order_id"] = config.OID
-        self.order_dict["mkt_order_id"] = config.OID
+        self.order_dict["order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = config.orb_oid
         parent_id = self.order_dict["mkt_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
 
@@ -196,10 +196,10 @@ class ORB(Strategy):
         self.broker.send_order(self.order_dict, self.con, order)
 
         # Stoploss Order for Order 1
-        config.OID = config.OID + 1
+        config.orb_oid = config.orb_oid + 1
 
-        self.order_dict["order_id"] = config.OID
-        self.order_dict["mkt_order_id"] = config.OID
+        self.order_dict["order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = config.orb_oid
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
@@ -214,10 +214,10 @@ class ORB(Strategy):
         self.broker.send_order(self.order_dict, self.con, order)
 
         # Profit Order for Order 1
-        config.OID = config.OID + 1
+        config.orb_oid = config.orb_oid + 1
 
-        self.order_dict["order_id"] = config.OID
-        self.order_dict["mkt_order_id"] = config.OID
+        self.order_dict["order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = config.orb_oid
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
 
