@@ -3,25 +3,19 @@ venv/
 big_algo_framework/__pycache__/
 big_algo_framework/*/__pycache__/
 
-app/*
 AutoEC2/*
-portfolio/*
 
 strategies/all_strategy_files/__pycache__/
 strategies/all_strategy_files/*/__pycache__/
-strategies/all_strategy_files/data/ameritrade-credentials.json
-strategies/all_strategy_files/data/chromedriver.exe
-strategies/all_strategy_files/data/config.ini
+strategies/all_strategy_files/database/config.ini
+
+strategies/orb/config.py
+strategies/forex/config.py
 
 strategies/__pycache__/
 strategies/*/__pycache__/
-strategies/bb_rev/*
-strategies/orb/*
-strategies/strat/*
-strategies/tests/*
 
-strategies/test_new.tos
-strategies/test.tos
+strategies/test.txt
 strategies/test_bb_rev.py
 
 ngrok.exe

@@ -1,11 +1,9 @@
 from big_algo_framework.brokers.abstract_broker import Broker
 import time
-from datetime import datetime
 from ibapi.order import Order
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
-import pandas as pd
 
 class IB(Broker, EWrapper, EClient):
     def __init__(self):
@@ -22,7 +20,6 @@ class IB(Broker, EWrapper, EClient):
         self.contract.currency = order_dict["currency"]
         self.contract.exchange = order_dict["exchange"]
         self.contract.primaryExchange = order_dict["primary_exchange"] #For options leave blank
-
         self.contract.lastTradeDateOrContractMonth = order_dict["lastTradeDateOrContractMonth"]
         self.contract.strike = order_dict["strike"]
         self.contract.right = order_dict["right"]
@@ -43,6 +40,7 @@ class IB(Broker, EWrapper, EClient):
         market_order.parentId = order_dict["mkt_parent_order_id"]
         market_order.tif = order_dict["mkt_time_in_force"]
         market_order.goodTillDate = order_dict["mkt_good_till_date"]
+        market_order.account = order_dict["account_no"]
         market_order.transmit = order_dict["mkt_transmit"]
 
         return market_order
@@ -58,6 +56,7 @@ class IB(Broker, EWrapper, EClient):
         stop_limit_order.tif = order_dict["slo_time_in_force"]
         stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
         stop_limit_order.parentId = order_dict["slo_parent_order_id"]
+        stop_limit_order.account = order_dict["account_no"]
         stop_limit_order.transmit = order_dict["slo_transmit"]
 
         return stop_limit_order
@@ -72,6 +71,7 @@ class IB(Broker, EWrapper, EClient):
         limit_order.tif = order_dict["lo_time_in_force"]
         limit_order.goodTillDate = order_dict["lo_good_till_date"]
         limit_order.parentId = order_dict["lo_parent_order_id"]
+        limit_order.account = order_dict["account_no"]
         limit_order.transmit = order_dict["lo_transmit"]
 
         return limit_order
@@ -86,6 +86,7 @@ class IB(Broker, EWrapper, EClient):
         stop_order.tif = order_dict["so_time_in_force"]
         stop_order.goodTillDate = order_dict["so_good_till_date"]
         stop_order.parentId = order_dict["so_parent_order_id"]
+        stop_order.account = order_dict["account_no"]
         stop_order.transmit = order_dict["so_transmit"]
 
         return stop_order
@@ -106,7 +107,6 @@ class IB(Broker, EWrapper, EClient):
     # IB SPECIFIC CALLBACK FUNCTIONS
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
-        print(orderId)
 
     def position(self, account, contract, position, avgCost):
         super().position(account, contract, position, avgCost)

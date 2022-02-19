@@ -1,16 +1,13 @@
-# from mysql.connector import connect, Error
 import psycopg2
-import time
-import numpy as np
 import configparser
-from datetime import datetime
-from pytz import timezone
-import pandas as pd
 from sqlalchemy import create_engine, text
+import os
 
 #CREATE DATABASE
-def createDB(db_name, config_path):
+def createDB(db_name):
     try:
+        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.ini')
+
         config = configparser.ConfigParser()
         config.read(config_path)
         database = config['DATABASE']
@@ -18,6 +15,7 @@ def createDB(db_name, config_path):
         host = database["host"]
         user = database["user"]
         password = database["password"]
+        port = database["port"]
 
         conn = psycopg2.connect(host=host, user=user, password=password)
         conn.autocommit = True
@@ -30,46 +28,10 @@ def createDB(db_name, config_path):
         else:
             conn.cursor().execute('CREATE DATABASE {};'.format(db_name))
 
-        psql_info = "postgresql://postgres:{}@{}:5432/{}" . format(password, host, db_name)
+        psql_info = "postgresql://postgres:{}@{}:{}/{}" . format(password, host, port, db_name)
         db = create_engine(psql_info)
 
         return db
 
     except Exception as e:
-        print(e)
-
-def insertOHLCData(resp, db, ticker, timeframe, historic_data_table, time_zone):
-    """
-        Insert historic data into database
-    """
-    try:
-        table_name = historic_data_table + "_" + timeframe.replace(" ", "_")
-
-        if resp.get('candles'):
-            df = pd.DataFrame.from_dict(resp['candles'])
-            df['ticker'] = ticker
-
-            if not df.empty:
-                df = df.rename(columns={'datetime': 'date_time'})
-                df.to_sql(table_name, db, if_exists='append', index=False, method='multi')
-
-    except Exception as e:
-        print(e)
-
-def insertOptionsData(opt_df, db, options_data_table):
-    """
-        Insert tdOptions data into database
-    """
-    #TODO: Later rewrite below code using sqlalchemy
-    try:
-        table = db[options_data_table]
-
-        opt_df = opt_df.replace(np.nan, 0)
-        opt_df = opt_df.replace([np.inf, -np.inf], 999999)
-        rows = opt_df.to_dict('records')
-
-        for row in rows:
-            table.upsert(row, ['ticker', 'strike', 'date'])
-
-    except Exception as e:
-        print(e)
+        print("Database Connection Error:", e)
