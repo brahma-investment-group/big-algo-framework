@@ -10,7 +10,8 @@ from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.orb.strategy import ORB
 from strategies.orb import config
-from strategies.orb.twitter import send_alert
+from strategies.orb.twitter_bot import send_twitter_alerts
+from strategies.orb.discord_bot import send_discord_alerts
 
 broker_2 = None
 
@@ -148,21 +149,5 @@ async def root():
 @app.post('/orb/options')
 async def orb_options(webhook_message: webhook_message):
     q.put(webhook_message)
-
-@app.post('/twitter')
-def webhook(webhook_message: webhook_message):
-
-    if webhook_message.passphrase != config.webhook["orb_passphrase"]:
-        return {
-            "status": "fail",
-            "code": "401",
-            "message": "Invalid passphrase"
-        }
-
-    try:
-        time.sleep(1800)
-        send_alert(webhook_message)
-
-    except Exception as e:
-        print("[X]", "Error:\n>", e)
-        return "Error", 400
+    await send_discord_alerts(webhook_message)
+    await send_twitter_alerts(webhook_message)

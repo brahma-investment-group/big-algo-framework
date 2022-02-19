@@ -1,8 +1,10 @@
-import time
 import tweepy
 from strategies.orb import config
+import asyncio
 
-def send_alert(data):
+async def send_twitter_alerts(data):
+    await asyncio.sleep(1800)
+
     msg = \
         "Delayed Trading Alerts - For Education Purposes Only"+ "\n" + \
         "$" + data.ticker + "/" + data.direction + "/$" + str(data.entry) + "\n\n" + \
