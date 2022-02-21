@@ -7,12 +7,12 @@ from big_algo_framework.strategies.abstract_strategy import *
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.all_strategies.strategy_functions import *
 from strategies.all_strategy_files.data.get_options_data import *
-from strategies.orb import config
+from strategies.ib_orb import config
 
 from ibapi.order_condition import PriceCondition
 import time
 
-class ORB(Strategy):
+class IBORB(Strategy):
     def __init__(self, order_dict):
         super().__init__()
         self.is_position = False
@@ -23,6 +23,8 @@ class ORB(Strategy):
         self.dashboard_dict = {}
         self.dashboard_dict[1] = {}
         self.dashboard_dict[2] = {}
+        self.open_action = ""
+        self.close_action = ""
         self.con = ()
 
         self.broker = self.order_dict["broker"]
@@ -36,10 +38,13 @@ class ORB(Strategy):
         self.tp2 = self.order_dict["tp2"]
         self.risk = self.order_dict["risk"]
         self.direction = self.order_dict["direction"]
-        self.open_action = self.order_dict["open_action"]
-        self.close_action = self.order_dict["close_action"]
+
         self.is_close = self.order_dict["is_close"]
         self.sec_type = self.order_dict["sec_type"]
+        self.option_action = self.order_dict["option_action"]
+        self.option_range = self.order_dict["option_range"]
+        self.option_strikes = self.order_dict["option_strikes"]
+        self.option_expiry_days = self.order_dict["option_expiry_days"]
         self.currency = self.order_dict["currency"]
         self.exchange = self.order_dict["exchange"]
         self.primary_exchange = self.order_dict["primary_exchange"]
@@ -70,7 +75,7 @@ class ORB(Strategy):
                 "strategy": "SINGLE",
                 "interval": '',
                 "strike": '',
-                "range": "OTM",
+                "range": self.option_range,
                 "volatility": '',
                 "underlying_price": '',
                 "interest_rate": '',
@@ -79,44 +84,91 @@ class ORB(Strategy):
                 "option_type": "ALL"
             }
 
-            # Based on the direction, derive the OTM option price and build the order_dict
-            if self.direction == "Bullish":
+            # Based on the direction, derive the option price and build the order_dict
+            if self.direction == "Bullish" and self.option_action == "BUY":
                 options_dict["contract_type"] = "CALL"
                 options_df = getOptions1(options_dict)
 
-                df = options_df.loc[(options_df['strikePrice'] >= self.entry) & (options_df['daysToExpiration'] >= 2)]
+                if self.option_range == "OTM":
+                    df = options_df.loc[(options_df['strikePrice'] >= self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                elif self.option_range == "ITM":
+                    df = options_df.loc[(options_df['strikePrice'] < self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
                 dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+                dff = dff.sort_values(by='strikePrice', ascending=True if self.option_range == "OTM" else False)
 
-                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[0]["expirationDate"].strftime("%Y%m%d")
-                self.order_dict["strike"] = dff.iloc[0]["strikePrice"]
+                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.option_strikes-1]["expirationDate"].strftime("%Y%m%d")
+                self.order_dict["strike"] = dff.iloc[self.option_strikes-1]["strikePrice"]
                 self.order_dict["right"] = 'C'
-                self.order_dict["ask_price"] = dff.iloc[0]["call_ask"]
-                self.order_dict["delta"] = dff.iloc[0]["call_delta"]
+                self.order_dict["delta"] = dff.iloc[self.option_strikes-1]["call_delta"]
+                self.order_dict["multiplier"] = dff.iloc[-self.option_strikes]["call_multiplier"]
 
-            if self.direction == "Bearish":
+            elif self.direction == "Bullish" and self.option_action == "SELL":
                 options_dict["contract_type"] = "PUT"
                 options_df = getOptions1(options_dict)
 
-                df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] >= 2)]
+                if self.option_range == "OTM":
+                    df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                elif self.option_range == "ITM":
+                    df = options_df.loc[(options_df['strikePrice'] > self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
                 dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+                dff = dff.sort_values(by='strikePrice', ascending=False if self.option_range == "OTM" else True)
 
-                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-1]["expirationDate"].strftime("%Y%m%d")
-                self.order_dict["strike"] = dff.iloc[-1]["strikePrice"]
+                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.option_strikes - 1]["expirationDate"].strftime("%Y%m%d")
+                self.order_dict["strike"] = dff.iloc[self.option_strikes - 1]["strikePrice"]
                 self.order_dict["right"] = 'P'
-                self.order_dict["ask_price"] = dff.iloc[-1]["put_ask"]
-                self.order_dict["delta"] = dff.iloc[-1]["put_delta"]
+                self.order_dict["delta"] = dff.iloc[self.option_strikes - 1]["put_delta"]
+                self.order_dict["multiplier"] = dff.iloc[-self.option_strikes]["put_multiplier"]
+
+            elif self.direction == "Bearish" and self.option_action == "BUY":
+                options_dict["contract_type"] = "PUT"
+                options_df = getOptions1(options_dict)
+
+                if self.option_range == "OTM":
+                    df = options_df.loc[(options_df['strikePrice'] <= self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                elif self.option_range == "ITM":
+                    df = options_df.loc[(options_df['strikePrice'] > self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+                dff = dff.sort_values(by='strikePrice', ascending=True if self.option_range == "OTM" else False)
+
+                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-self.option_strikes]["expirationDate"].strftime("%Y%m%d")
+                self.order_dict["strike"] = dff.iloc[-self.option_strikes]["strikePrice"]
+                self.order_dict["right"] = 'P'
+                self.order_dict["delta"] = dff.iloc[-self.option_strikes]["put_delta"]
+                self.order_dict["multiplier"] = dff.iloc[-self.option_strikes]["put_multiplier"]
+
+            elif self.direction == "Bearish" and self.option_action == "SELL":
+                options_dict["contract_type"] = "CALL"
+                options_df = getOptions1(options_dict)
+
+                if self.option_range == "OTM":
+                    df = options_df.loc[(options_df['strikePrice'] >= self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                elif self.option_range == "ITM":
+                    df = options_df.loc[(options_df['strikePrice'] < self.entry) & (options_df['daysToExpiration'] >= self.option_expiry_days)]
+                dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+                dff = dff.sort_values(by='strikePrice', ascending=False if self.option_range == "OTM" else True)
+
+                self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-self.option_strikes]["expirationDate"].strftime("%Y%m%d")
+                self.order_dict["strike"] = dff.iloc[-self.option_strikes]["strikePrice"]
+                self.order_dict["right"] = 'C'
+                self.order_dict["delta"] = dff.iloc[-self.option_strikes]["call_delta"]
+                self.order_dict["multiplier"] = dff.iloc[-self.option_strikes]["call_multiplier"]
 
             # Build order_dict and get the contract
             self.order_dict["primary_exchange"] = ""
-            self.order_dict["multiplier"] = 100
+            self.open_action = self.option_action
+            self.close_action = "SELL" if self.open_action=="BUY" else "BUY"
+
+        if self.sec_type == "STK":
+            if self.direction == "Bullish":
+                self.open_action = "BUY"
+                self.close_action = "SELL"
+            elif self.direction == "Bearish":
+                self.open_action = "SELL"
+                self.close_action = "BUY"
 
         # Request the contract for the asset that we are trading
         self.con = self.broker.get_contract(self.order_dict)
         time.sleep(1)
-        # Using the underlying contract, request details like mintick
-        # self.broker.reqContractDetails(randint(0, 10000), self.con)
-        # time.sleep(1)
-        # options_min_tick = self.broker.mintick
 
         # Form the dictionary for the underlying and get the contract
         stock_dict = {"ticker": self.ticker,
@@ -135,7 +187,6 @@ class ORB(Strategy):
         time.sleep(1)
         stocks_min_tick = self.broker.mintick
 
-
         # Adjust the entry/sl/tp to take into account the mintick
         self.entry = self.entry - (self.entry % stocks_min_tick)
         self.tp1 = self.tp1 - (self.tp1 % stocks_min_tick)
@@ -144,15 +195,18 @@ class ORB(Strategy):
 
         # Position Sizing
         self.order_dict["available_capital"] = float(self.broker.acc_dict["AvailableFunds"])
-        position = PositionSizing()
 
         if self.sec_type == "OPT":
-            self.order_dict["risk_contract"] = abs((self.entry - self.sl) * self.order_dict["delta"])
+            self.order_dict["risk_unit"] = abs((self.entry - self.sl) * self.order_dict["delta"])*self.order_dict["multiplier"]
             print("DELTA: ", self.order_dict["delta"])
-            print("RISK/CONT: ", self.order_dict["risk_contract"])
+            print("RISK/CONT: ", self.order_dict["risk_unit"])
+
+            position = PositionSizing(self.order_dict)
             quantity = position.options_quantity(self.order_dict)
         if self.sec_type == "STK":
-            self.order_dict["risk_share"] = abs(self.entry - self.sl)
+            self.order_dict["risk_unit"] = abs(self.entry - self.sl)
+
+            position = PositionSizing(self.order_dict)
             quantity = position.stock_quantity(self.order_dict)
         self.quantity1 = quantity
 
