@@ -210,6 +210,7 @@ class IBORB(Strategy):
             quantity = position.stock_quantity(self.order_dict)
         self.quantity1 = quantity
 
+        print("This is the stock conid: ", self.broker.conid)
         # Price/Time conditions
         x = True if self.direction == "Bullish" else False
         y = False if self.direction == "Bullish" else True
