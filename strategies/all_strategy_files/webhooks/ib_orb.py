@@ -34,6 +34,7 @@ def run_ib_orb():
             ib_client = config.ib_account["orb_ib_client"]
             total_risk = config.risk_param["orb_total_risk"]
             total_risk_units = config.risk_param["orb_total_risk_units"]
+            max_position_percent = config.risk_param["orb_max_position_percent"]
             sec_type = config.contract["orb_sec_type"]
             option_action = config.contract["orb_option_action"]
             option_range = config.contract["orb_option_range"]
@@ -80,6 +81,7 @@ def run_ib_orb():
                           "account_no": account_no,
                           "total_risk": total_risk,
                           "total_risk_units": total_risk_units,
+                          "max_position_percent": max_position_percent
                           }
 
             print(datetime.datetime.now(), ": ", order_dict["ticker"])
