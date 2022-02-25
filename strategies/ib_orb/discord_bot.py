@@ -1,6 +1,6 @@
 import time
 from discord_webhook import DiscordWebhook, DiscordEmbed
-from strategies.orb import config
+from strategies.ib_orb import config
 
 async def send_discord_alerts(data):
     webhook = config.discord["orb"]

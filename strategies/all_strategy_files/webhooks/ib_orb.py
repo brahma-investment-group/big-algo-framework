@@ -1,49 +1,18 @@
 import queue
-
-from fastapi import FastAPI
-from pydantic import BaseModel
 import traceback
-import threading
 import datetime
-from ibapi.account_summary_tags import AccountSummaryTags
+from strategies.all_strategy_files.webhooks.ib_conn import *
 from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
-from strategies.orb.strategy import ORB
-from strategies.orb import config
-from strategies.orb.twitter_bot import send_twitter_alerts
-from strategies.orb.discord_bot import send_discord_alerts
+from strategies.ib_orb import config
+from strategies.ib_orb.strategy import IBORB
 
+ib_orb_queue = queue.Queue()
 broker_2 = None
 
-def websocket_con(broker):
-    broker.run()
-
-def connect_ib(broker, ip_address, port, ib_client):
-    # Connects to interactive brokers with the specified port/client and returns the last order ID.
-    broker.connect(ip_address, port, ib_client)
-    time.sleep(1)
-    broker.reqPositions()
-    time.sleep(1)
-    broker.reqOpenOrders()
-    time.sleep(1)
-    broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
-    time.sleep(1)
-
-    con_thread = threading.Thread(target=websocket_con, args=(broker,), daemon=True)
-    con_thread.start()
-    time.sleep(1)
-
-    broker.reqIds(1)
-    time.sleep(1)
-
-    return broker.orderId
-
-app = FastAPI()
-q = queue.Queue()
-
-def run_queue():
+def run_ib_orb():
     while True:
-        webhook_message = q.get()
+        webhook_message = ib_orb_queue.get()
 
         if webhook_message.passphrase != config.webhook["orb_passphrase"]:
             return {
@@ -65,7 +34,12 @@ def run_queue():
             ib_client = config.ib_account["orb_ib_client"]
             total_risk = config.risk_param["orb_total_risk"]
             total_risk_units = config.risk_param["orb_total_risk_units"]
+            max_position_percent = config.risk_param["orb_max_position_percent"]
             sec_type = config.contract["orb_sec_type"]
+            option_action = config.contract["orb_option_action"]
+            option_range = config.contract["orb_option_range"]
+            option_strikes = config.contract["orb_option_strikes"]
+            option_expiry_days = config.contract["orb_option_expiry_days"]
             currency = config.contract["orb_currency"]
             exchange = config.contract["orb_exchange"]
 
@@ -89,10 +63,12 @@ def run_queue():
                           "tp2": webhook_message.tp2,
                           "risk": webhook_message.risk,
                           "direction": webhook_message.direction,
-                          "open_action": webhook_message.open_action,
-                          "close_action": webhook_message.close_action,
                           "is_close": webhook_message.is_close,
                           "sec_type": sec_type,
+                          "option_action": option_action,
+                          "option_range": option_range,
+                          "option_strikes": option_strikes,
+                          "option_expiry_days": option_expiry_days,
                           "currency": currency,
                           "exchange": exchange,
                           "lastTradeDateOrContractMonth": "",
@@ -105,10 +81,11 @@ def run_queue():
                           "account_no": account_no,
                           "total_risk": total_risk,
                           "total_risk_units": total_risk_units,
+                          "max_position_percent": max_position_percent
                           }
 
             print(datetime.datetime.now(), ": ", order_dict["ticker"])
-            x = ORB(order_dict)
+            x = IBORB(order_dict)
             x.execute()
 
         except Exception as exc:
@@ -121,33 +98,7 @@ def run_queue():
                 "message": f"{str(Exception)}"
             }
 
-        q.task_done()
+        ib_orb_queue.task_done()
 
-queue_thread = threading.Thread(target=run_queue, daemon=True)
-queue_thread.start()
-
-class webhook_message(BaseModel):
-    ticker: str
-    exchange: str
-    time_frame: float
-    entry_time: int
-    entry: float
-    sl: float
-    tp1: float
-    tp2: float
-    risk: float
-    direction: str
-    open_action: str
-    close_action: str
-    passphrase: str
-    is_close: int
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@app.post('/orb/options')
-async def orb_options(webhook_message: webhook_message):
-    q.put(webhook_message)
-    await send_discord_alerts(webhook_message)
-    await send_twitter_alerts(webhook_message)
+ib_orb_thread = threading.Thread(target=run_ib_orb, daemon=True)
+ib_orb_thread.start()

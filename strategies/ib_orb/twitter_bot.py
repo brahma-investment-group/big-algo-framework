@@ -1,5 +1,5 @@
 import tweepy
-from strategies.orb import config
+from strategies.ib_orb import config
 import asyncio
 
 async def send_twitter_alerts(data):
