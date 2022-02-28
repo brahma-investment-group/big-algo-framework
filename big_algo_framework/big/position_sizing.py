@@ -10,7 +10,7 @@ class PositionSizing():
 
         self.max_cost = self.available_capital * self.max_position_percent * 0.01
 
-    def stock_quantity(self, order_dict):
+    def stock_quantity(self):
         if self.total_risk_units == "amount":
             self.quantity = int(self.total_risk / self.risk_unit)
 
@@ -26,7 +26,7 @@ class PositionSizing():
 
         return self.quantity
 
-    def options_quantity(self, order_dict):
+    def options_quantity(self):
         if self.total_risk_units == "amount":
             self.quantity = int(self.total_risk / self.risk_unit)
 

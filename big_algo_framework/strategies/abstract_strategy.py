@@ -41,7 +41,7 @@ class Strategy(ABC):
     def execute(self):
         self.start()
 
-        self.before_check_open_orders()
+        self.before_check_positions()
         self.check_positions()
         self.after_check_positions()
 
