@@ -113,14 +113,16 @@ class StrategyFunctions():
 
                 "order_id": order_id
             }
-            #TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
-            x = True if opt_right == "C" else False
-            price = 0 if opt_right == "C" else 99999
+
+            # TODO: Create another function for "closeallpositions_underlying" and paste all code including the below commented code
+            # TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
+            # x = True if opt_right == "C" else False
+            # price = 0 if opt_right == "C" else 99999
 
             pos_con = self.broker.get_contract(pos_order_dict)
 
-            tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
+            # tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
             mkt_order = self.broker.get_market_order(pos_order_dict)
-            mkt_order.conditions.append(tp_price_condition)
+            # mkt_order.conditions.append(tp_price_condition)
 
             self.broker.send_order(pos_order_dict, pos_con, mkt_order)

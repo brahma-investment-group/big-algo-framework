@@ -99,6 +99,7 @@ class IbGetAction():
             self.order_dict["open_action"] = self.order_dict["option_action"]
             self.order_dict["close_action"] = "SELL" if self.order_dict["open_action"] == "BUY" else "BUY"
 
+        # TODO: Move stocks to separate function!!!
         if self.order_dict["sec_type"] == "STK":
             if self.order_dict["direction"] == "Bullish":
                 self.order_dict["open_action"] = "BUY"
