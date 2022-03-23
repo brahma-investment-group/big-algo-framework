@@ -46,7 +46,10 @@ class IBORB(Strategy):
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
-        action.get_action()
+        if self.order_dict["sec_type"] == "STK":
+            action.get_stocks_action()
+        if self.order_dict["sec_type"] == "OPT":
+            action.get_options_action()
 
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
@@ -67,7 +70,7 @@ class IBORB(Strategy):
 
         if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            self.order_dict["function"].closeAllPositions()
+            self.order_dict["function"].close_all_positions()
 
     def send_orders(self):
         # IB Send Orders Class

@@ -11,7 +11,6 @@ class IbSendOrders():
 
     def get_contract(self):
         # Request the contract for the asset that we are trading
-        # TODO: For options, primary_exchange should be blank. Create an if "options" and set it to blank
         self.order_dict["con"] = self.order_dict["broker"].get_contract(self.order_dict)
         time.sleep(1)
         # Using the contract, request details like mintick
