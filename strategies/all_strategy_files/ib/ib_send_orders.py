@@ -11,7 +11,7 @@ class IbSendOrders():
 
     def get_contract(self):
         # Request the contract for the asset that we are trading
-        self.order_dict["con"] = self.order_dict["broker"].get_contract(self.order_dict)
+        self.order_dict["con"] = self.order_dict["broker"].get_contract()
         time.sleep(1)
         # Using the contract, request details like mintick
         self.order_dict["broker"].reqContractDetails(randint(0, 10000), self.order_dict["con"])
@@ -78,9 +78,9 @@ class IbSendOrders():
         self.order_dict["mkt_good_till_date"] = self.order_dict["gtd"].strftime('%Y%m%d %H:%M:%S')
         self.order_dict["mkt_transmit"] = False
 
-        order = self.order_dict["broker"].get_market_order(self.order_dict)
+        order = self.order_dict["broker"].get_market_order()
         order.conditions.append(self.parent_order_price_condition)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)
 
         # Stoploss Order for Order 1
         config.orb_oid = config.orb_oid + 1
@@ -96,9 +96,9 @@ class IbSendOrders():
         self.order_dict["mkt_good_till_date"] = ""
         self.order_dict["mkt_transmit"] = False
 
-        order = self.order_dict["broker"].get_market_order(self.order_dict)
+        order = self.order_dict["broker"].get_market_order()
         order.conditions.append(self.sl_price_condition)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)
 
         # Profit Order for Order 1
         config.orb_oid = config.orb_oid + 1
@@ -114,9 +114,9 @@ class IbSendOrders():
         self.order_dict["mkt_good_till_date"] = ""
         self.order_dict["mkt_transmit"] = True
 
-        order = self.order_dict["broker"].get_market_order(self.order_dict)
+        order = self.order_dict["broker"].get_market_order()
         order.conditions.append(self.tp_price_condition)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)
 
     def send_lmt_stp_order(self):
         self.get_contract()
@@ -138,8 +138,8 @@ class IbSendOrders():
         self.order_dict["slo_good_till_date"] = self.order_dict["gtd"].strftime('%Y%m%d %H:%M:%S')
         self.order_dict["slo_transmit"] = False
 
-        order = self.order_dict["broker"].get_stop_limit_order(self.order_dict)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        order = self.order_dict["broker"].get_stop_limit_order()
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)
 
         # Stoploss Order for Order 1
         config.orb_oid = config.orb_oid + 1
@@ -156,8 +156,8 @@ class IbSendOrders():
         self.order_dict["so_good_till_date"] = ""
         self.order_dict["so_transmit"] = False
 
-        order = self.order_dict["broker"].get_stop_order(self.order_dict)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        order = self.order_dict["broker"].get_stop_order()
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)
 
         # Profit Order for Order 1
         config.orb_oid = config.orb_oid + 1
@@ -174,5 +174,5 @@ class IbSendOrders():
         self.order_dict["lo_good_till_date"] = ""
         self.order_dict["lo_transmit"] = True
 
-        order = self.order_dict["broker"].get_limit_order(self.order_dict)
-        self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+        order = self.order_dict["broker"].get_limit_order()
+        self.order_dict["broker"].send_order(self.order_dict["con"], order)

@@ -12,21 +12,23 @@ class IB(Broker, EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
         self.orderId = 0
+        self.acc_dict = {}
 
-    def init_client(self, client):
+    def init_client(self, client, order_dict):
         self.client = client
+        self.order_dict = order_dict
 
-    def get_contract(self, order_dict):
+    def get_contract(self):
         self.contract = Contract()
-        self.contract.symbol = order_dict["ticker"]
-        self.contract.secType = order_dict["sec_type"]
-        self.contract.currency = order_dict["currency"]
-        self.contract.exchange = order_dict["exchange"]
-        self.contract.primaryExchange = order_dict["primary_exchange"] #For options leave blank
-        self.contract.lastTradeDateOrContractMonth = order_dict["lastTradeDateOrContractMonth"]
-        self.contract.strike = order_dict["strike"]
-        self.contract.right = order_dict["right"]
-        self.contract.multiplier = order_dict["multiplier"]
+        self.contract.symbol = self.order_dict["ticker"]
+        self.contract.secType = self.order_dict["sec_type"]
+        self.contract.currency = self.order_dict["currency"]
+        self.contract.exchange = self.order_dict["exchange"]
+        self.contract.primaryExchange = self.order_dict["primary_exchange"] #For options leave blank
+        self.contract.lastTradeDateOrContractMonth = self.order_dict["lastTradeDateOrContractMonth"]
+        self.contract.strike = self.order_dict["strike"]
+        self.contract.right = self.order_dict["right"]
+        self.contract.multiplier = self.order_dict["multiplier"]
 
         return self.contract
 
@@ -34,63 +36,63 @@ class IB(Broker, EWrapper, EClient):
         client.reqIds(1)
         time.sleep(1)
 
-    def get_market_order(self, order_dict):
+    def get_market_order(self):
         market_order = Order()
-        market_order.orderId = order_dict["mkt_order_id"]
-        market_order.action = order_dict["mkt_action"]
+        market_order.orderId = self.order_dict["mkt_order_id"]
+        market_order.action = self.order_dict["mkt_action"]
         market_order.orderType = 'MKT'
-        market_order.totalQuantity = order_dict["mkt_quantity"]
-        market_order.parentId = order_dict["mkt_parent_order_id"]
-        market_order.tif = order_dict["mkt_time_in_force"]
-        market_order.goodTillDate = order_dict["mkt_good_till_date"]
-        market_order.account = order_dict["account_no"]
-        market_order.transmit = order_dict["mkt_transmit"]
+        market_order.totalQuantity = self.order_dict["mkt_quantity"]
+        market_order.parentId = self.order_dict["mkt_parent_order_id"]
+        market_order.tif = self.order_dict["mkt_time_in_force"]
+        market_order.goodTillDate = self.order_dict["mkt_good_till_date"]
+        market_order.account = self.order_dict["account_no"]
+        market_order.transmit = self.order_dict["mkt_transmit"]
 
         return market_order
 
-    def get_stop_limit_order(self, order_dict):
+    def get_stop_limit_order(self):
         stop_limit_order = Order()
-        stop_limit_order.orderId = order_dict["slo_order_id"]
-        stop_limit_order.action = order_dict["slo_action"]
+        stop_limit_order.orderId = self.order_dict["slo_order_id"]
+        stop_limit_order.action = self.order_dict["slo_action"]
         stop_limit_order.orderType = 'STP LMT'
-        stop_limit_order.totalQuantity = order_dict["slo_quantity"]
-        stop_limit_order.lmtPrice = order_dict["slo_limit_price"]
-        stop_limit_order.auxPrice = order_dict["slo_stop_price"]
-        stop_limit_order.tif = order_dict["slo_time_in_force"]
-        stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
-        stop_limit_order.parentId = order_dict["slo_parent_order_id"]
-        stop_limit_order.account = order_dict["account_no"]
-        stop_limit_order.transmit = order_dict["slo_transmit"]
+        stop_limit_order.totalQuantity = self.order_dict["slo_quantity"]
+        stop_limit_order.lmtPrice = self.order_dict["slo_limit_price"]
+        stop_limit_order.auxPrice = self.order_dict["slo_stop_price"]
+        stop_limit_order.tif = self.order_dict["slo_time_in_force"]
+        stop_limit_order.goodTillDate = self.order_dict["slo_good_till_date"]
+        stop_limit_order.parentId = self.order_dict["slo_parent_order_id"]
+        stop_limit_order.account = self.order_dict["account_no"]
+        stop_limit_order.transmit = self.order_dict["slo_transmit"]
 
         return stop_limit_order
 
-    def get_limit_order(self, order_dict):
+    def get_limit_order(self):
         limit_order = Order()
-        limit_order.orderId = order_dict["lo_order_id"]
-        limit_order.action = order_dict["lo_action"]
+        limit_order.orderId = self.order_dict["lo_order_id"]
+        limit_order.action = self.order_dict["lo_action"]
         limit_order.orderType = 'LMT'
-        limit_order.totalQuantity = order_dict["lo_quantity"]
-        limit_order.lmtPrice = order_dict["lo_limit_price"]
-        limit_order.tif = order_dict["lo_time_in_force"]
-        limit_order.goodTillDate = order_dict["lo_good_till_date"]
-        limit_order.parentId = order_dict["lo_parent_order_id"]
-        limit_order.account = order_dict["account_no"]
-        limit_order.transmit = order_dict["lo_transmit"]
+        limit_order.totalQuantity = self.order_dict["lo_quantity"]
+        limit_order.lmtPrice = self.order_dict["lo_limit_price"]
+        limit_order.tif = self.order_dict["lo_time_in_force"]
+        limit_order.goodTillDate = self.order_dict["lo_good_till_date"]
+        limit_order.parentId = self.order_dict["lo_parent_order_id"]
+        limit_order.account = self.order_dict["account_no"]
+        limit_order.transmit = self.order_dict["lo_transmit"]
 
         return limit_order
 
-    def get_stop_order(self, order_dict):
+    def get_stop_order(self):
         stop_order = Order()
-        stop_order.orderId = order_dict["so_order_id"]
-        stop_order.action = order_dict["so_action"]
+        stop_order.orderId = self.order_dict["so_order_id"]
+        stop_order.action = self.order_dict["so_action"]
         stop_order.orderType = 'STP'
-        stop_order.totalQuantity = order_dict["so_quantity"]
-        stop_order.auxPrice = order_dict["so_stop_price"]
-        stop_order.tif = order_dict["so_time_in_force"]
-        stop_order.goodTillDate = order_dict["so_good_till_date"]
-        stop_order.parentId = order_dict["so_parent_order_id"]
-        stop_order.account = order_dict["account_no"]
-        stop_order.transmit = order_dict["so_transmit"]
+        stop_order.totalQuantity = self.order_dict["so_quantity"]
+        stop_order.auxPrice = self.order_dict["so_stop_price"]
+        stop_order.tif = self.order_dict["so_time_in_force"]
+        stop_order.goodTillDate = self.order_dict["so_good_till_date"]
+        stop_order.parentId = self.order_dict["so_parent_order_id"]
+        stop_order.account = self.order_dict["account_no"]
+        stop_order.transmit = self.order_dict["so_transmit"]
 
         return stop_order
 
@@ -102,12 +104,12 @@ class IB(Broker, EWrapper, EClient):
         for o in bracketOrder:
             self.client.placeOrder(o.orderId, self.contract, o)
 
-    def send_order(self, order_dict, contract, order):
-        self.client.placeOrder(order_dict["order_id"], contract, order)
+    def send_order(self, contract, order):
+        self.client.placeOrder(self.order_dict["order_id"], contract, order)
         time.sleep(1)
 
-    def set_strategy_status(self, order_dict):
-        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {order_dict['strategy_table']} where status IN (' ', 'Open', 'In Progress') ;", con=order_dict['db'])
+    def set_strategy_status(self):
+        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {self.order_dict['strategy_table']} where status IN (' ', 'Open', 'In Progress') ;", con=self.order_dict['db'])
 
         closed_status = ['PendingCancel', 'ApiCancelled', 'Cancelled', 'Inactive']
         open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
@@ -120,53 +122,53 @@ class IB(Broker, EWrapper, EClient):
             profit_order_id = row['profit_order_id']
             stoploss_order_id = row['stoploss_order_id']
 
-            parent_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {parent_order_id};", con=order_dict['db'])
-            stoploss_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {stoploss_order_id};", con=order_dict['db'])
-            profit_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {profit_order_id};", con=order_dict['db'])
+            parent_order_status = pd.read_sql_query(f"select order_status from {self.order_dict['orders_table']} WHERE order_id = {parent_order_id};", con=self.order_dict['db'])
+            stoploss_order_status = pd.read_sql_query(f"select order_status from {self.order_dict['orders_table']} WHERE order_id = {stoploss_order_id};", con=self.order_dict['db'])
+            profit_order_status = pd.read_sql_query(f"select order_status from {self.order_dict['orders_table']} WHERE order_id = {profit_order_id};", con=self.order_dict['db'])
 
             if (parent_order_status.values in filled_status) and (stoploss_order_status.values in open_status or profit_order_status.values in open_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
 
             elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in filled_status or profit_order_status.values in filled_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in closed_status or profit_order_status.values in closed_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif parent_order_status.values in closed_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
 
             elif parent_order_status.values in open_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
 
             else:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
+                query = text(f"UPDATE {self.order_dict['strategy_table']} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
 
-            with order_dict['db'].connect() as conn:
+            with self.order_dict['db'].connect() as conn:
                 conn.execute(query)
                 conn.close()
-                order_dict['db'].dispose()
+                self.order_dict['db'].dispose()
 
-    def is_exist_positions(self, order_dict):
-        ticker_pos = pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con=order_dict['db'])
+    def is_exist_positions(self):
+        ticker_pos = pd.read_sql_query(f"select cont_ticker from {self.order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con=self.order_dict['db'])
 
-        if order_dict['ticker'] not in ticker_pos.values:
+        if self.order_dict['ticker'] not in ticker_pos.values:
             return True
 
         else:
             return False
 
-    def close_all_positions(self, order_dict):
+    def close_all_positions(self):
         # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-        open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con=order_dict['db'])
+        open_orders = pd.read_sql_query(f"select parent_order_id from {self.order_dict['strategy_table']} WHERE status IN ('Open');", con=self.order_dict['db'])
 
         for ind in open_orders.index:
             order_id = open_orders['parent_order_id'][ind]
-            order_dict['broker'].cancelOrder(order_id)
+            self.order_dict['broker'].cancelOrder(order_id)
 
         # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
         open_positions = pd.read_sql_query(
-            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con=order_dict['db'])
+            f"select * from {self.order_dict['orders_table']} LEFT OUTER JOIN {self.order_dict['strategy_table']} ON {self.order_dict['strategy_table']}.profit_order_id = order_id WHERE {self.order_dict['strategy_table']}.status IN ('In Progress');", con=self.order_dict['db'])
 
         for ind in open_positions.index:
             cont_ticker = open_positions.iloc[ind]['cont_ticker']
@@ -203,28 +205,28 @@ class IB(Broker, EWrapper, EClient):
                 "mkt_parent_order_id": "",
                 "mkt_time_in_force": "",
                 "mkt_good_till_date": "",
-                "account_no": order_dict['account_no'],
+                "account_no": self.order_dict['account_no'],
                 "mkt_transmit": True,
 
                 "order_id": order_id
             }
 
-            pos_con = order_dict['broker'].get_contract(pos_order_dict)
-            mkt_order = order_dict['broker'].get_market_order(pos_order_dict)
-            order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
+            pos_con = self.order_dict['broker'].get_contract(pos_order_dict)
+            mkt_order = self.order_dict['broker'].get_market_order(pos_order_dict)
+            self.order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
 
-    def close_all_positions_underlying(self, order_dict):
+    def close_all_positions_underlying(self):
         # TODO: This function is exactly the same as above function, except few lines. Maybe we can do something in order to avoid repeating the code
         # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-        open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con=order_dict['db'])
+        open_orders = pd.read_sql_query(f"select parent_order_id from {self.order_dict['strategy_table']} WHERE status IN ('Open');", con=self.order_dict['db'])
 
         for ind in open_orders.index:
             order_id = open_orders['parent_order_id'][ind]
-            order_dict['broker'].cancelOrder(order_id)
+            self.order_dict['broker'].cancelOrder(order_id)
 
         # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
         open_positions = pd.read_sql_query(
-            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con=order_dict['db'])
+            f"select * from {self.order_dict['orders_table']} LEFT OUTER JOIN {self.order_dict['strategy_table']} ON {self.order_dict['strategy_table']}.profit_order_id = order_id WHERE {self.order_dict['strategy_table']}.status IN ('In Progress');", con=self.order_dict['db'])
 
         for ind in open_positions.index:
             cont_ticker = open_positions.iloc[ind]['cont_ticker']
@@ -261,7 +263,7 @@ class IB(Broker, EWrapper, EClient):
                 "mkt_parent_order_id": "",
                 "mkt_time_in_force": "",
                 "mkt_good_till_date": "",
-                "account_no": order_dict['account_no'],
+                "account_no": self.order_dict['account_no'],
                 "mkt_transmit": True,
 
                 "order_id": order_id
@@ -271,18 +273,21 @@ class IB(Broker, EWrapper, EClient):
             x = True if opt_right == "C" else False
             price = 0 if opt_right == "C" else 99999
 
-            pos_con = order_dict['broker'].get_contract(pos_order_dict)
+            pos_con = self.order_dict['broker'].get_contract(pos_order_dict)
 
             tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
-            mkt_order = order_dict['broker'].get_market_order(pos_order_dict)
+            mkt_order = self.order_dict['broker'].get_market_order(pos_order_dict)
             mkt_order.conditions.append(tp_price_condition)
 
-            order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
+            self.order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
 
     #######################################################################################################
     # IB SPECIFIC CALLBACK FUNCTIONS
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
+
+        self.orderId = orderId
+        time.sleep(1)
 
     def position(self, account, contract, position, avgCost):
         super().position(account, contract, position, avgCost)
@@ -304,16 +309,103 @@ class IB(Broker, EWrapper, EClient):
     def openOrder(self, orderId, contract, order, orderState):
         super().openOrder(orderId, contract, order, orderState)
 
-    def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId,
-                    whyHeld, mktCapPrice):
-        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId,
-                    whyHeld, mktCapPrice)
+        good_after_time = 0 if order.goodAfterTime == '' else order.goodAfterTime
+        sql_str = f"INSERT INTO {self.order_dict['orders_table']}(order_id, perm_id, client_id, ticker, order_type, action, limit_price, stop_price, quantity, parent_id, time_in_force, good_till_date, good_after_time) " \
+                  f"VALUES({orderId}, {order.permId}, {order.clientId}, '{contract.symbol}', '{order.orderType}', '{order.action}', {order.lmtPrice}, {order.auxPrice}, {order.totalQuantity}, {order.parentId}, '{order.tif}', '{order.goodTillDate}', '{good_after_time}') " \
+                  f"ON CONFLICT(order_id) " \
+                  f"DO UPDATE SET " \
+                  f"order_id = {orderId}," \
+                  f"perm_id = {order.permId}," \
+                  f"client_id = {order.clientId}," \
+                  f"ticker = '{contract.symbol}'," \
+                  f"order_type = '{order.orderType}'," \
+                  f"action = '{order.action}'," \
+                  f"limit_price = {order.lmtPrice}," \
+                  f"stop_price = {order.auxPrice}," \
+                  f"quantity = {order.totalQuantity}," \
+                  f"parent_id = {order.parentId}," \
+                  f"time_in_force = '{order.tif}'," \
+                  f"good_till_date = '{order.goodTillDate}'," \
+                  f"good_after_time = '{order.goodAfterTime}';"
+
+        with self.order_dict['db'].connect() as conn:
+            conn.execute(sql_str)
+            conn.close()
+            self.order_dict['db'].dispose()
+
+    def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
+        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
+
+        why_held = 0 if whyHeld == '' else whyHeld
+        sql_str = f"INSERT INTO {self.order_dict['orders_table']}(order_id, order_status, filled, remaining, avg_fill_price, last_fill_price, client_id, why_held, mkt_cap_price) " \
+                  f"VALUES({orderId}, '{status}', {filled}, {remaining}, {avgFillPrice}, {lastFillPrice}, {clientId}, '{why_held}', {mktCapPrice}) " \
+                  f"ON CONFLICT(order_id) " \
+                  f"DO UPDATE SET " \
+                  f"order_status = '{status}'," \
+                  f"filled = {filled}," \
+                  f"remaining = {remaining}," \
+                  f"avg_fill_price = {avgFillPrice}," \
+                  f"last_fill_price = {lastFillPrice}," \
+                  f"client_id = {clientId}," \
+                  f"why_held = '{why_held}'," \
+                  f"mkt_cap_price = {mktCapPrice};"
+
+        with self.order_dict['db'].connect() as conn:
+            conn.execute(sql_str)
+            conn.close()
+            self.order_dict['db'].dispose()
 
     def contractDetails(self, reqId, contractDetails):
         super().contractDetails(reqId, contractDetails)
+
+        self.mintick = contractDetails.minTick
+        self.conid = contractDetails.contract.conId
 
     def contractDetailsEnd(self, reqId):
         super().contractDetailsEnd(reqId)
 
     def execDetails(self, reqId, contract, execution):
         super().execDetails(reqId, contract, execution)
+
+        sql_str = f"INSERT INTO {self.order_dict['orders_table']}(order_id, exec_id, time, account_no, exchange, side, shares, price, liquidation, cum_qty, avg_price) " \
+                  f"VALUES('{execution.orderId}', '{execution.execId}', '{execution.time}', '{execution.acctNumber}', '{execution.exchange}', '{execution.side}', {execution.shares}, {execution.price}, {execution.liquidation}, {execution.cumQty}, {execution.avgPrice}) " \
+                  f"ON CONFLICT(order_id) " \
+                  f"DO UPDATE SET " \
+                  f"exec_id = '{execution.execId}'," \
+                  f"time = '{execution.time}'," \
+                  f"account_no = '{execution.acctNumber}'," \
+                  f"exchange = '{execution.exchange}'," \
+                  f"side = '{execution.side}'," \
+                  f"shares = {execution.shares}," \
+                  f"price = {execution.price}," \
+                  f"liquidation = {execution.liquidation}," \
+                  f"cum_qty = {execution.cumQty}," \
+                  f"avg_price = {execution.avgPrice};"
+
+        with self.order_dict['db'].connect() as conn:
+            conn.execute(sql_str)
+            conn.close()
+            self.order_dict['db'].dispose()
+
+    def commissionReport(self, commissionReport):
+        super().commissionReport(commissionReport)
+
+        sql_str = f"INSERT INTO {self.order_dict['orders_table']}(exec_id, commission, currency, realized_pnl) " \
+                  f"VALUES('{commissionReport.execId}', {commissionReport.commission}, '{commissionReport.currency}', {commissionReport.realizedPNL}) " \
+                  f"ON CONFLICT(exec_id) " \
+                  f"DO UPDATE SET " \
+                  f"commission = {commissionReport.commission}," \
+                  f"currency = '{commissionReport.currency}'," \
+                  f"realized_pnl = {commissionReport.realizedPNL};"
+
+        with self.order_dict['db'].connect() as conn:
+            conn.execute(sql_str)
+            conn.close()
+            self.order_dict['db'].dispose()
+
+    def updateAccountValue(self, key, val, currency, accountName):
+        super().updateAccountValue(key, val, currency, accountName)
+
+    def accountSummary(self, reqId: int, account: str, tag: str, value: str, currency: str):
+        super().accountSummary(reqId, account, tag, value, currency)
+        self.acc_dict[tag] = value

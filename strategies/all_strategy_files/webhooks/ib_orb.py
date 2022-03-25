@@ -1,8 +1,8 @@
 import queue
 import traceback
 import datetime
+from big_algo_framework.brokers.ib import IB
 from strategies.all_strategy_files.webhooks.ib_conn import *
-from strategies.all_strategy_files.child_classes.brokers_ib_child import *
 from strategies.all_strategy_files.database.database import createDB
 from strategies.ib_orb import config
 from strategies.ib_orb.strategy import IBORB
@@ -48,7 +48,7 @@ def run_ib_orb():
 
             global broker_2
             if (broker_2 == None) or (not broker_2.isConnected()):
-                broker_2 = IbChild(db, orders_table)
+                broker_2 = IB()
                 config.orb_oid = connect_ib(broker_2, ip_address, port, ib_client)
 
             order_dict = {"broker": broker_2,
