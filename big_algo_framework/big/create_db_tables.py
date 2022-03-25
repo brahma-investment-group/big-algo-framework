@@ -1,12 +1,10 @@
-from strategies.all_strategy_files.database.database import *
+from big_algo_framework.big.database import *
 
 class CreateTables():
     def __init__(self, db):
         self.db = db
 
-    def create_orb_dashboard(self):
-        tables = ["orb_strategy"]
-
+    def create_dashboard(self, tables):
         for i in range(0, len(tables)):
             query1 = text("CREATE TABLE IF NOT EXISTS {}("
                           "parent_order_id BIGINT UNIQUE,"
@@ -39,9 +37,7 @@ class CreateTables():
                 conn.close()
                 self.db.dispose()
 
-    def create_orders(self):
-        tables = ["orb_orders"]
-
+    def create_orders(self, tables):
         for i in range(0, len(tables)):
             query1 = text("CREATE TABLE IF NOT EXISTS {}("
                           "order_id BIGINT UNIQUE,"
@@ -88,9 +84,3 @@ class CreateTables():
                 conn.execute(query2)
                 conn.close()
                 self.db.dispose()
-
-db = createDB("market_data")
-
-table = CreateTables(db)
-table.create_orders()
-table.create_orb_dashboard()

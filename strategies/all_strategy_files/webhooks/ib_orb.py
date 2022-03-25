@@ -3,7 +3,7 @@ import traceback
 import datetime
 from big_algo_framework.brokers.ib import IB
 from strategies.all_strategy_files.webhooks.ib_conn import *
-from strategies.all_strategy_files.database.database import createDB
+from big_algo_framework.big.database import createDB
 from strategies.ib_orb import config
 from strategies.ib_orb.strategy import IBORB
 
@@ -43,7 +43,7 @@ def run_ib_orb():
             currency = config.contract["orb_currency"]
             exchange = config.contract["orb_exchange"]
 
-            db = createDB(database_name)
+            db = createDB(database_name, "strategies/all_strategy_files/config.ini")
             time.sleep(1)
 
             global broker_2

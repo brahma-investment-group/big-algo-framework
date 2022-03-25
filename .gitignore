@@ -7,7 +7,7 @@ AutoEC2/*
 
 strategies/all_strategy_files/__pycache__/
 strategies/all_strategy_files/*/__pycache__/
-strategies/all_strategy_files/database/config.ini
+strategies/all_strategy_files/config.ini
 
 strategies/ib_orb/config.py
 strategies/forex/config.py
