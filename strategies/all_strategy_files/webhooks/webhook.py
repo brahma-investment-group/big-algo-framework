@@ -27,5 +27,7 @@ async def root():
 @app.post('/ib/orb')
 async def ib_orb(webhook_message: webhook_message):
     ib_orb_queue.put(webhook_message)
-    await send_discord_alerts(webhook_message)
-    await send_twitter_alerts(webhook_message)
+
+    if webhook_message.is_close == 0:
+        await send_discord_alerts(webhook_message)
+        await send_twitter_alerts(webhook_message)

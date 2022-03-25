@@ -114,6 +114,17 @@ class IB(Broker, EWrapper, EClient):
     def positionEnd(self):
         super().positionEnd()
 
+    def positionMulti(self, reqId, account, modelCode, contract, pos, avgCost):
+        super().positionMulti(reqId, account, modelCode, contract, pos, avgCost)
+        print("PositionMulti. RequestId:", reqId, "Account:", account,
+        "ModelCode:", modelCode, "Symbol:", contract.symbol, "SecType:",
+        contract.secType, "Currency:", contract.currency, ",Position:",
+        pos, "AvgCost:", avgCost)
+
+    def positionMultiEnd(self, reqId: int):
+        super().positionMultiEnd(reqId)
+        print("PositionMultiEnd. RequestId:", reqId)
+
     def openOrder(self, orderId, contract, order, orderState):
         super().openOrder(orderId, contract, order, orderState)
 
