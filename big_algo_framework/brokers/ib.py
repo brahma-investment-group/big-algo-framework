@@ -1,5 +1,6 @@
 from big_algo_framework.brokers.abstract_broker import Broker
 import time
+import threading
 from sqlalchemy import text
 import pandas as pd
 from ibapi.order import Order
@@ -7,6 +8,7 @@ from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.order_condition import PriceCondition
+from ibapi.account_summary_tags import AccountSummaryTags
 
 class IB(Broker, EWrapper, EClient):
     def __init__(self):
@@ -17,6 +19,29 @@ class IB(Broker, EWrapper, EClient):
     def init_client(self, client, order_dict):
         self.client = client
         self.order_dict = order_dict
+
+    def websocket_con(self, broker):
+        broker.run()
+
+    def connect_ib(self, broker, ip_address, port, ib_client):
+        # Connects to interactive brokers with the specified port/client and returns the last order ID.
+        broker.connect(ip_address, port, ib_client)
+        time.sleep(1)
+        broker.reqPositions()
+        time.sleep(1)
+        broker.reqOpenOrders()
+        time.sleep(1)
+        broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
+        time.sleep(1)
+
+        con_thread = threading.Thread(target=self.websocket_con, args=(broker,), daemon=True)
+        con_thread.start()
+        time.sleep(1)
+
+        broker.reqIds(1)
+        time.sleep(1)
+
+        return broker.orderId
 
     def get_contract(self):
         self.contract = Contract()

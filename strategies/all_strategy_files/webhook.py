@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from strategies.all_strategy_files.webhooks.ib_orb import *
+from strategies.ib_orb.read_queue import *
 from strategies.ib_orb.twitter_bot import send_twitter_alerts
 from strategies.ib_orb.discord_bot import send_discord_alerts
 

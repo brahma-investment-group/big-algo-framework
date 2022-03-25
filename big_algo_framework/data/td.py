@@ -8,10 +8,7 @@ import time
 import json
 import os
 
-def getOptions1(options_dict):
-    current_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    config_path = str(Path(current_path).parents[0]) + '\database\config.ini'
-
+def get_options(options_dict, config_path):
     config = configparser.ConfigParser()
     config.read(config_path)
     tda_api = config['TDA_API']
@@ -41,7 +38,6 @@ def getOptions1(options_dict):
     page = requests.get(url=endpoint, params={'apikey': api_key})
     time.sleep(1)
     content = json.loads(page.content)
-    # print(content)
 
     call_options = pd.DataFrame()
     put_options = pd.DataFrame()
@@ -80,13 +76,13 @@ def getOptions1(options_dict):
 
         return put_options
 
-
     else:
         return call_options
 
-def getOptions(ticker, days_forward):
-    current_path = os.path.join(os.path.dirname(os.path.realpath(__file__)))
-    config_path = str(Path(current_path).parents[0]) + '\database\config.ini'
+def get_options_main(ticker, days_forward, config_path):
+    # TODO: Migrate the "endpoint" variable from get_options() and also have a list of if/else to let the user select
+    # what keys to retrieve from TD, and also whether to merge the calls/puts df and whether to calculate the ratios.
+    # Then delete the get_options() function above.
 
     config = configparser.ConfigParser()
     config.read(config_path)

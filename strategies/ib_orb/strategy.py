@@ -7,7 +7,6 @@ from strategies.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from strategies.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from strategies.all_strategy_files.ib.ib_get_action import IbGetAction
 from big_algo_framework.strategies.abstract_strategy import *
-# from strategies.all_strategy_files.all_strategies.strategy_functions import StrategyFunctions
 
 class IBORB(Strategy):
     def __init__(self, order_dict):
