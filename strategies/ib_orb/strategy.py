@@ -7,7 +7,7 @@ from strategies.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from strategies.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from strategies.all_strategy_files.ib.ib_get_action import IbGetAction
 from big_algo_framework.strategies.abstract_strategy import *
-from strategies.all_strategy_files.all_strategies.strategy_functions import StrategyFunctions
+# from strategies.all_strategy_files.all_strategies.strategy_functions import StrategyFunctions
 
 class IBORB(Strategy):
     def __init__(self, order_dict):
@@ -23,15 +23,6 @@ class IBORB(Strategy):
         self.order_dict["open_action"] = ""
         self.order_dict["close_action"] = ""
         self.order_dict["con"] = ()
-
-        # TODO: We are passing self.order_dict and also the components. So need some rewrite
-        self.function = StrategyFunctions(self.order_dict["db"],
-                                          self.order_dict["ticker"],
-                                          self.order_dict["broker"],
-                                          self.order_dict,
-                                          self.order_dict["orders_table"],
-                                          self.order_dict["strategy_table"])
-        self.order_dict["function"] = self.function
 
     def check_positions(self):
         # IB Check Order Position Class
@@ -66,11 +57,11 @@ class IBORB(Strategy):
     def start(self):
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         self.order_dict["broker"].init_client(self.order_dict["broker"])
-        self.order_dict["function"].set_strategy_status()
+        self.order_dict["broker"].set_strategy_status(self.order_dict)
 
         if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            self.order_dict["function"].close_all_positions()
+            self.order_dict["broker"].close_all_positions()
 
     def send_orders(self):
         # IB Send Orders Class
