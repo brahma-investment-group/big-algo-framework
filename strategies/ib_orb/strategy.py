@@ -56,11 +56,11 @@ class IBORB(Strategy):
     def start(self):
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
-        self.order_dict["broker"].set_strategy_status()
+        self.order_dict["broker"].set_strategy_status(self.order_dict)
 
         if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            self.order_dict["broker"].close_all_positions()
+            self.order_dict["broker"].close_all_positions(self.order_dict)
 
     def send_orders(self):
         # IB Send Orders Class
