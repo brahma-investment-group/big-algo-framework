@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from strategies.ib_orb.read_queue import *
-from strategies.ib_orb.twitter_bot import send_twitter_alerts
-from strategies.ib_orb.discord_bot import send_discord_alerts
+from big_algo_framework.big.social_media import SocialMedia
 
 app = FastAPI()
 
@@ -29,5 +28,23 @@ async def ib_orb(webhook_message: webhook_message):
     ib_orb_queue.put(webhook_message)
 
     if webhook_message.is_close == 0:
-        await send_discord_alerts(webhook_message)
-        await send_twitter_alerts(webhook_message)
+        discord_data = {
+            "webhook": config.discord["orb"],
+            "description": "FREE Alerts -  Opening Range Breakout (ORB) Strategy",
+        }
+
+        twitter_data = {
+            "tw_ckey": config.twitter["tw_ckey"],
+            "tw_csecret": config.twitter["tw_csecret"],
+            "tw_atoken": config.twitter["tw_atoken"],
+            "tw_asecret": config.twitter["tw_asecret"],
+
+            "tweet": "Delayed Trading Alerts - For Education Purposes Only" + "\n" + \
+            "$" + webhook_message.ticker + "/" + webhook_message.direction + "/$" + str(webhook_message.entry) + "\n\n" + \
+            "For real time join : discord.gg/u3gQGhkPKU" + "\n\n" + \
+            "#TheStrat #ORB #OptionsTrading #tradingtips #stockmarkets #stocks #investing #Automation #Algorithms"
+        }
+
+        social_media = SocialMedia(webhook_message)
+        await social_media.send_discord_alerts(discord_data)
+        await social_media.send_twitter_alerts(twitter_data)
