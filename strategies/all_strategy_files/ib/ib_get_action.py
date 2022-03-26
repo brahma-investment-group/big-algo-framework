@@ -45,7 +45,8 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[self.order_dict["option_strikes"] - 1]["strikePrice"]
             self.order_dict["right"] = 'C'
-            self.order_dict["delta"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_delta"]
+            self.order_dict["ask"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_ask"]
+            self.order_dict["bid"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["call_multiplier"]
 
         elif self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "SELL":
@@ -62,7 +63,8 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[self.order_dict["option_strikes"] - 1]["strikePrice"]
             self.order_dict["right"] = 'P'
-            self.order_dict["delta"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_delta"]
+            self.order_dict["ask"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_ask"]
+            self.order_dict["bid"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["put_multiplier"]
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "BUY":
@@ -80,7 +82,8 @@ class IbGetAction():
                 "expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[-self.order_dict["option_strikes"]]["strikePrice"]
             self.order_dict["right"] = 'P'
-            self.order_dict["delta"] = dff.iloc[-self.order_dict["option_strikes"]]["put_delta"]
+            self.order_dict["ask"] = dff.iloc[-self.order_dict["option_strikes"]]["put_ask"]
+            self.order_dict["bid"] = dff.iloc[-self.order_dict["option_strikes"]]["put_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["put_multiplier"]
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "SELL":
@@ -97,7 +100,8 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-self.order_dict["option_strikes"]]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[-self.order_dict["option_strikes"]]["strikePrice"]
             self.order_dict["right"] = 'C'
-            self.order_dict["delta"] = dff.iloc[-self.order_dict["option_strikes"]]["call_delta"]
+            self.order_dict["ask"] = dff.iloc[-self.order_dict["option_strikes"]]["call_ask"]
+            self.order_dict["bid"] = dff.iloc[-self.order_dict["option_strikes"]]["call_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["call_multiplier"]
 
         # Build order_dict and get the contract

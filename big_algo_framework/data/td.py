@@ -1,4 +1,3 @@
-from pathlib import Path
 import configparser
 import datetime
 import pandas as pd
@@ -6,7 +5,6 @@ import numpy as np
 import requests
 import time
 import json
-import os
 
 def get_options(options_dict, config_path):
     config = configparser.ConfigParser()
@@ -35,14 +33,14 @@ def get_options(options_dict, config_path):
                f'expMonth={options_dict["exp_month"]}&' \
                f'optionType={options_dict["option_type"]}' \
 
-    page = requests.get(url=endpoint, params={'apikey': api_key})
+    page = requests.get(url = endpoint, params={'apikey': api_key})
     time.sleep(1)
     content = json.loads(page.content)
 
     call_options = pd.DataFrame()
     put_options = pd.DataFrame()
 
-    if options_dict["contract_type"]=="CALL" and content["callExpDateMap"]:
+    if options_dict["contract_type"] == "CALL" and content["callExpDateMap"]:
         for date in content["callExpDateMap"]:
             for strike in content["callExpDateMap"][date]:
                 for data in content["callExpDateMap"][date][strike]:
@@ -51,7 +49,8 @@ def get_options(options_dict, config_path):
                         'expirationDate': data["expirationDate"],
                         'daysToExpiration': data["daysToExpiration"],
                         'call': data["putCall"],
-                        'call_delta': data["delta"],
+                        'call_bid': data["bid"],
+                        'call_ask': data["ask"],
                         'call_multiplier': data["multiplier"]},
                         ignore_index=True)
 
@@ -68,7 +67,8 @@ def get_options(options_dict, config_path):
                         'expirationDate': data["expirationDate"],
                         'daysToExpiration': data["daysToExpiration"],
                         'put': data["putCall"],
-                        'put_delta': data["delta"],
+                        'put_bid': data["bid"],
+                        'put_ask': data["ask"],
                         'put_multiplier': data["multiplier"]},
                         ignore_index=True)
 

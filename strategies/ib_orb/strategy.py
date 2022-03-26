@@ -41,6 +41,12 @@ class IBORB(Strategy):
         if self.order_dict["sec_type"] == "OPT":
             action.get_options_action()
 
+        # If we are trading options, then overwrite the entry/sl/tp parameters
+        if self.order_dict["sec_type"] == "OPT":
+            self.order_dict["entry"] = self.order_dict["ask"]
+            self.order_dict["sl"] = self.order_dict["entry"] * 0.90
+            self.order_dict["tp1"] = self.order_dict["entry"] * 1.10
+
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
         if self.order_dict["sec_type"] == "STK":
@@ -60,7 +66,7 @@ class IBORB(Strategy):
 
         if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            self.order_dict["broker"].close_all_positions(self.order_dict)
+            self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
 
     def send_orders(self):
         # IB Send Orders Class
