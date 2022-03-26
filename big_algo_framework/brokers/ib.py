@@ -11,11 +11,21 @@ from ibapi.order_condition import PriceCondition
 from ibapi.account_summary_tags import AccountSummaryTags
 
 class IB(Broker, EWrapper, EClient):
+    # Below is the class structure
+    # 01. Authentication
+    # 02. Asset
+    # 03. Prepare/Send Orders
+    # 04. Get Orders/Positions
+    # 05. Close Orders/Positions
+    # 06. Miscellaneous
+    # 07. IB SPECIFIC CALLBACK FUNCTIONS
+
     def __init__(self):
         EClient.__init__(self, self)
         self.orderId = 0
         self.acc_dict = {}
 
+    # Authentication
     def init_client(self, client, order_dict):
         self.client = client
         self.orders_table = order_dict['orders_table']
@@ -44,6 +54,7 @@ class IB(Broker, EWrapper, EClient):
 
         return broker.orderId
 
+    # Asset
     def get_contract(self, order_dict):
         self.contract = Contract()
         self.contract.symbol = order_dict["ticker"]
@@ -58,10 +69,7 @@ class IB(Broker, EWrapper, EClient):
 
         return self.contract
 
-    def getOrderID(self, client):
-        client.reqIds(1)
-        time.sleep(1)
-
+    # Prepare/Send Orders
     def get_market_order(self, order_dict):
         market_order = Order()
         market_order.orderId = order_dict["mkt_order_id"]
@@ -134,47 +142,7 @@ class IB(Broker, EWrapper, EClient):
         self.client.placeOrder(order_dict["order_id"], contract, order)
         time.sleep(1)
 
-    def set_strategy_status(self, order_dict):
-        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {order_dict['strategy_table']} where status IN (' ', 'Open', 'In Progress') ;", con = order_dict['db'])
-
-        closed_status = ['PendingCancel', 'ApiCancelled', 'Cancelled', 'Inactive']
-        open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
-        filled_status = ['Filled']
-
-        for i in range (0, len(strategy_order_ids)):
-            row = strategy_order_ids.iloc[i]
-
-            parent_order_id = row['parent_order_id']
-            profit_order_id = row['profit_order_id']
-            stoploss_order_id = row['stoploss_order_id']
-
-            parent_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {parent_order_id};", con = order_dict['db'])
-            stoploss_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {stoploss_order_id};", con = order_dict['db'])
-            profit_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {profit_order_id};", con = order_dict['db'])
-
-            if (parent_order_status.values in filled_status) and (stoploss_order_status.values in open_status or profit_order_status.values in open_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
-
-            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in filled_status or profit_order_status.values in filled_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
-
-            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in closed_status or profit_order_status.values in closed_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
-
-            elif parent_order_status.values in closed_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
-
-            elif parent_order_status.values in open_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
-
-            else:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
-
-            with order_dict['db'].connect() as conn:
-                conn.execute(query)
-                conn.close()
-                order_dict['db'].dispose()
-
+    # Get Orders/Positions
     def is_exist_positions(self, order_dict):
         ticker_pos = pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con = order_dict['db'])
 
@@ -184,6 +152,7 @@ class IB(Broker, EWrapper, EClient):
         else:
             return False
 
+    # Close Orders/Positions
     def close_all_positions(self, order_dict):
         # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
         open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con = order_dict['db'])
@@ -307,7 +276,52 @@ class IB(Broker, EWrapper, EClient):
 
             order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
 
-    #######################################################################################################
+    # Miscellaneous
+    def getOrderID(self, client):
+        client.reqIds(1)
+        time.sleep(1)
+
+    def set_strategy_status(self, order_dict):
+        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {order_dict['strategy_table']} where status IN (' ', 'Open', 'In Progress') ;", con = order_dict['db'])
+
+        closed_status = ['PendingCancel', 'ApiCancelled', 'Cancelled', 'Inactive']
+        open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
+        filled_status = ['Filled']
+
+        for i in range (0, len(strategy_order_ids)):
+            row = strategy_order_ids.iloc[i]
+
+            parent_order_id = row['parent_order_id']
+            profit_order_id = row['profit_order_id']
+            stoploss_order_id = row['stoploss_order_id']
+
+            parent_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {parent_order_id};", con = order_dict['db'])
+            stoploss_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {stoploss_order_id};", con = order_dict['db'])
+            profit_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {profit_order_id};", con = order_dict['db'])
+
+            if (parent_order_status.values in filled_status) and (stoploss_order_status.values in open_status or profit_order_status.values in open_status):
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
+
+            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in filled_status or profit_order_status.values in filled_status):
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+
+            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in closed_status or profit_order_status.values in closed_status):
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+
+            elif parent_order_status.values in closed_status:
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+
+            elif parent_order_status.values in open_status:
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
+
+            else:
+                query = text(f"UPDATE {order_dict['strategy_table']} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
+
+            with order_dict['db'].connect() as conn:
+                conn.execute(query)
+                conn.close()
+                order_dict['db'].dispose()
+
     # IB SPECIFIC CALLBACK FUNCTIONS
     def nextValidId(self, orderId):
         super().nextValidId(orderId)
