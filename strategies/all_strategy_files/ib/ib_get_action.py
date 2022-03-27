@@ -1,4 +1,4 @@
-from big_algo_framework.data.td import get_options
+from big_algo_framework.data.td import TDData
 
 class IbGetAction():
     def __init__(self, order_dict):
@@ -30,10 +30,11 @@ class IbGetAction():
             "option_type": "ALL"
         }
 
+        data = TDData()
         # Based on the direction, derive the option price and build the order_dict
         if self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "CALL"
-            options_df = get_options(options_dict, "strategies/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, "strategies/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] >= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -51,7 +52,7 @@ class IbGetAction():
 
         elif self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "PUT"
-            options_df = get_options(options_dict, "strategies/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, "strategies/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] <= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -69,7 +70,7 @@ class IbGetAction():
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "PUT"
-            options_df = get_options(options_dict, "strategies/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, "strategies/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] <= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -88,7 +89,7 @@ class IbGetAction():
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "CALL"
-            options_df = get_options(options_dict, "strategies/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, "strategies/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] >= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
