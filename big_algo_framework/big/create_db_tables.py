@@ -64,6 +64,7 @@ class CreateTables():
                           "tp2_price DOUBLE PRECISION,"
                           "risk_share DOUBLE PRECISION,"
                           "cont_ticker CHARACTER VARYING,"
+                          "direction CHARACTER VARYING,"
                           "timeframe CHARACTER VARYING,"
                           "date_time BIGINT,"
                           "sec_type CHARACTER VARYING,"
@@ -74,6 +75,7 @@ class CreateTables():
                           "cont_date CHARACTER VARYING,"
                           "strike DOUBLE PRECISION,"
                           "opt_right CHARACTER VARYING,"
+                          "opt_action CHARACTER VARYING,"
                           "multiplier BIGINT,"
                           "status CHARACTER VARYING);".format(tables[i]))
 

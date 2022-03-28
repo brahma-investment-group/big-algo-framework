@@ -172,6 +172,7 @@ class IB(Broker, EWrapper, EClient):
             cont_exchange = open_positions.iloc[ind]['cont_exchange']
             primary_exchange = open_positions.iloc[ind]['primary_exchange']
             stock_conid = open_positions.iloc[ind]['stock_conid']
+            direction = open_positions.iloc[ind]['direction']
 
             order_id = open_positions.iloc[ind]['order_id']
             remaining = open_positions.iloc[ind]['remaining']
@@ -211,14 +212,25 @@ class IB(Broker, EWrapper, EClient):
 
             if underlying:
                 if sec_type == "STK":
-                    # TODO: Include direction in database and check direction to detemine x and price
-                    x = True if opt_right == "C" else False
-                    price = 0 if opt_right == "C" else 99999
+                    x = True if direction == "Bullish" else False
+                    price = 0 if direction == "Bullish" else 99999
 
-                if order_dict["sec_type"] == "OPT":
-                    # TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
-                    x = True if opt_right == "C" else False
-                    price = 0 if opt_right == "C" else 99999
+                if sec_type == "OPT":
+                    if opt_right == "C" and direction == "Bullish":
+                        x = True
+                        price = 0
+
+                    elif opt_right == "C" and direction == "Bearish":
+                        x = False
+                        price = 99999
+
+                    elif opt_right == "P" and direction == "Bullish":
+                        x = False
+                        price = 99999
+
+                    elif opt_right == "P" and direction == "Bearish":
+                        x = True
+                        price = 0
 
                 tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
                 mkt_order.conditions.append(tp_price_condition)

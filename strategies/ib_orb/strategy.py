@@ -85,6 +85,7 @@ class IBORB(Strategy):
                         tp2_price=self.order_dict["tp2"],
                         risk_share=self.order_dict["risk"],
                         cont_ticker=self.order_dict["ticker"],
+                        direction=self.order_dict["direction"],
 
                         timeframe=self.order_dict["time_frame"],
                         date_time=self.order_dict["entry_time"]/1000,
@@ -97,6 +98,7 @@ class IBORB(Strategy):
                         cont_date=self.order_dict["lastTradeDateOrContractMonth"],
                         strike=self.order_dict["strike"],
                         opt_right=self.order_dict["right"],
+                        opt_action=self.order_dict["option_action"],
                         multiplier=self.order_dict["multiplier"],
                         status='Open')
 
