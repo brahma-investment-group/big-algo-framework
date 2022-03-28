@@ -33,6 +33,7 @@ def run_ib_orb():
             ip_address = config.ib_account["orb_ip_address"]
             port = config.ib_account["orb_port"]
             ib_client = config.ib_account["orb_ib_client"]
+            funds = config.risk_param["orb_funds"]
             total_risk = config.risk_param["orb_total_risk"]
             total_risk_units = config.risk_param["orb_total_risk_units"]
             max_position_percent = config.risk_param["orb_max_position_percent"]
@@ -80,6 +81,7 @@ def run_ib_orb():
                           "orders_table": orders_table,
                           "strategy_table": strategy_table,
                           "account_no": account_no,
+                          "funds": funds,
                           "total_risk": total_risk,
                           "total_risk_units": total_risk_units,
                           "max_position_percent": max_position_percent

@@ -29,6 +29,9 @@ class PositionSizing():
 
         if self.total_risk_units == "percent":
             self.quantity = int(self.total_risk * self.available_capital * 0.01 / self.risk_unit)
-            # TODO: Add code for "if cost > self.max_cost" from stock_quantity
+            cost = self.quantity * self.entry
+
+            if cost > self.max_cost:
+                self.quantity = int(self.max_cost / self.entry)
 
         return self.quantity

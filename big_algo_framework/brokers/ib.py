@@ -206,17 +206,24 @@ class IB(Broker, EWrapper, EClient):
                 "order_id": order_id
             }
 
-            pos_con = order_dict['broker'].get_contract(pos_order_dict) ######
-            mkt_order = order_dict['broker'].get_market_order(pos_order_dict)    ######
+            pos_con = order_dict['broker'].get_contract(pos_order_dict)
+            mkt_order = order_dict['broker'].get_market_order(pos_order_dict)
 
             if underlying:
-                # TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
-                x = True if opt_right == "C" else False
-                price = 0 if opt_right == "C" else 99999
+                if sec_type == "STK":
+                    # TODO: Include direction in database and check direction to detemine x and price
+                    x = True if opt_right == "C" else False
+                    price = 0 if opt_right == "C" else 99999
+
+                if order_dict["sec_type"] == "OPT":
+                    # TODO: Make below lines general for stocks and options (For options, take into consideration both opt_right and direction)
+                    x = True if opt_right == "C" else False
+                    price = 0 if opt_right == "C" else 99999
+
                 tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
                 mkt_order.conditions.append(tp_price_condition)
 
-            order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)     ########
+            order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
 
     # Miscellaneous
     def getOrderID(self, client):

@@ -3,8 +3,6 @@ from big_algo_framework.brokers.abstract_broker import Broker
 
 class MT(Broker):
     def __init__(self):
-        # TODO: In every function we are passing order_dict. We can simply it by passing it on init and referring it
-        #  to as self.order_dict, similar to what we are doing in IB.
         pass
 
     def init_client(self, login, server, password):
