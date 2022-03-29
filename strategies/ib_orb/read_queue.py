@@ -51,7 +51,7 @@ def run_ib_orb():
             global broker_2
             if (broker_2 == None) or (not broker_2.isConnected()):
                 broker_2 = IB()
-                config.orb_oid = broker_2.connect_ib(broker_2, ip_address, port, ib_client)
+                config.orb_oid = broker_2.connect_broker(broker_2, ip_address, port, ib_client)
 
             order_dict = {"broker": broker_2,
                           "db": db,

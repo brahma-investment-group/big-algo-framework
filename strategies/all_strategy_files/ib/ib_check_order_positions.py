@@ -5,7 +5,7 @@ class IbCheckOrderPositions():
 
     def check_ib_positions(self):
         is_position = False
-        if self.order_dict["broker"].is_exist_positions(self.order_dict):
+        if self.order_dict["broker"].get_all_positions(self.order_dict):
             is_position = True
 
         return is_position

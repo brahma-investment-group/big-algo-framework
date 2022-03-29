@@ -34,7 +34,7 @@ class IB(Broker, EWrapper, EClient):
     def websocket_con(self, broker):
         broker.run()
 
-    def connect_ib(self, broker, ip_address, port, ib_client):
+    def connect_broker(self, broker, ip_address, port, ib_client):
         # Connects to interactive brokers with the specified port/client and returns the last order ID.
         broker.connect(ip_address, port, ib_client)
         time.sleep(1)
@@ -69,7 +69,7 @@ class IB(Broker, EWrapper, EClient):
 
         return self.contract
 
-    # Prepare/Send Orders
+    # Prepare Orders
     def get_market_order(self, order_dict):
         market_order = Order()
         market_order.orderId = order_dict["mkt_order_id"]
@@ -130,7 +130,8 @@ class IB(Broker, EWrapper, EClient):
 
         return stop_order
 
-    def send_bracket_order(self, *orders):
+    # Send Orders
+    def send_oto_order(self, *orders):
         bracketOrder = []
         for x in orders:
             bracketOrder.append(x)
@@ -138,12 +139,24 @@ class IB(Broker, EWrapper, EClient):
         for o in bracketOrder:
             self.client.placeOrder(o.orderId, self.contract, o)
 
+    def send_oco_order(self):
+        pass
+
     def send_order(self, order_dict, contract, order):
         self.client.placeOrder(order_dict["order_id"], contract, order)
         time.sleep(1)
 
     # Get Orders/Positions
-    def is_exist_positions(self, order_dict):
+    def get_order(self):
+        pass
+
+    def get_all_orders(self):
+        pass
+
+    def get_position(self):
+        pass
+
+    def get_all_positions(self, order_dict):
         ticker_pos = pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con = order_dict['db'])
 
         if order_dict['ticker'] not in ticker_pos.values:
@@ -152,7 +165,16 @@ class IB(Broker, EWrapper, EClient):
         else:
             return False
 
-    # Close Orders/Positions
+    # Cancel Orders/Close Positions
+    def cancel_order(self):
+        pass
+
+    def cancel_all_orders(self):
+        pass
+
+    def close_position(self):
+        pass
+
     def close_all_positions(self, order_dict, underlying=False):
         # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
         open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con = order_dict['db'])
