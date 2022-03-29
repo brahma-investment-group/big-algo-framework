@@ -1,4 +1,4 @@
-from strategies.ib_orb import config
+from examples.ib_orb import config
 from ibapi.order_condition import PriceCondition
 from random import randint
 import time

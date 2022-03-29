@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from strategies.ib_orb.read_queue import *
+from examples.ib_orb.read_queue import *
 from big_algo_framework.big.social_media import SocialMedia
 
 app = FastAPI()

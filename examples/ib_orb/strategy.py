@@ -2,10 +2,10 @@ from datetime import datetime
 from dateutil import tz
 import pandas as pd
 
-from strategies.all_strategy_files.ib.ib_check_order_positions import IbCheckOrderPositions
-from strategies.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
-from strategies.all_strategy_files.ib.ib_send_orders import IbSendOrders
-from strategies.all_strategy_files.ib.ib_get_action import IbGetAction
+from examples.all_strategy_files.ib.ib_check_order_positions import IbCheckOrderPositions
+from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
+from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
+from examples.all_strategy_files.ib.ib_get_action import IbGetAction
 from big_algo_framework.strategies.abstract_strategy import *
 
 class IBORB(Strategy):

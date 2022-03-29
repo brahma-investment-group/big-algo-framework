@@ -5,8 +5,8 @@ import threading
 import time
 from big_algo_framework.brokers.ib import IB
 from big_algo_framework.big.create_db import create_db
-from strategies.ib_orb import config
-from strategies.ib_orb.strategy import IBORB
+from examples.ib_orb import config
+from examples.ib_orb.strategy import IBORB
 
 ib_orb_queue = queue.Queue()
 broker_2 = None
@@ -45,7 +45,7 @@ def run_ib_orb():
             currency = config.contract["orb_currency"]
             exchange = config.contract["orb_exchange"]
 
-            db = create_db(database_name, "strategies/all_strategy_files/config.ini")
+            db = create_db(database_name, "examples/all_strategy_files/config.ini")
             time.sleep(1)
 
             global broker_2

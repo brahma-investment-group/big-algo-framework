@@ -5,17 +5,17 @@ big_algo_framework/*/__pycache__/
 
 AutoEC2/*
 
-strategies/all_strategy_files/__pycache__/
-strategies/all_strategy_files/*/__pycache__/
-strategies/all_strategy_files/config.ini
+examples/all_strategy_files/__pycache__/
+examples/all_strategy_files/*/__pycache__/
+examples/all_strategy_files/config.ini
 
-strategies/ib_orb/config.py
-strategies/forex/config.py
+examples/ib_orb/config.py
+examples/forex/config.py
 
-strategies/__pycache__/
-strategies/*/__pycache__/
+examples/__pycache__/
+examples/*/__pycache__/
 
-strategies/test.txt
-strategies/test_bb_rev.py
+examples/test.txt
+examples/test_bb_rev.py
 
 ngrok.exe

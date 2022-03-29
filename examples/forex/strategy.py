@@ -1,5 +1,5 @@
 from big_algo_framework.brokers.mt5 import MT
-from strategies.forex import config
+from examples.forex import config
 from big_algo_framework.big.position_sizing import PositionSizing
 from big_algo_framework.strategies.abstract_strategy import *
 from datetime import timedelta, timezone, datetime
