@@ -1,18 +1,11 @@
 from big_algo_framework.brokers.mt5 import MT
-from strategies.all_strategy_files.forex_strategies.strategy_functions import *
-from strategies.forex import config
+from examples.forex import config
 from big_algo_framework.big.position_sizing import PositionSizing
 from big_algo_framework.strategies.abstract_strategy import *
 from datetime import timedelta, timezone, datetime
 
-
-
-
-
 deviation = 2
 magic = 21051987
-
-
 
 class OrbForex(Strategy):
     def __init__(self, order_dict):
@@ -53,14 +46,14 @@ class OrbForex(Strategy):
         # self.close_action = self.order_dict["close_action"]
         # self.is_close = self.order_dict["is_close"]
 
-        self.function = StrategyFunctions(self.ticker)
+
 
     def check_positions(self):
-        if not self.function.is_exist_positions():
+        if not self.broker.is_exist_positions():
             self.is_position = True
 
     def check_open_orders(self):
-        if not self.function.is_exist_orders():
+        if not self.broker.is_exist_orders():
             self.is_order = True
 
     def before_send_orders(self):
@@ -107,7 +100,7 @@ class OrbForex(Strategy):
 
         if self.is_close == 1:
             print("Closing Period")
-            self.function.closeAllPositions()
+            self.broker.closeAllPositions()
 
     def send_orders(self):
         order = self.broker.get_limit_order(self.order_dict)

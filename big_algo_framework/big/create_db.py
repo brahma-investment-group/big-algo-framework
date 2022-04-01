@@ -1,13 +1,10 @@
 import psycopg2
 import configparser
-from sqlalchemy import create_engine, text
-import os
+from sqlalchemy import create_engine
 
 #CREATE DATABASE
-def createDB(db_name):
+def create_db(db_name, config_path):
     try:
-        config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.ini')
-
         config = configparser.ConfigParser()
         config.read(config_path)
         database = config['DATABASE']

@@ -3,8 +3,7 @@ from big_algo_framework.big.position_sizing import PositionSizing
 class IbPositionSizing():
     def __init__(self, order_dict):
         self.order_dict = order_dict
-        # TODO: Make "AvailableFunds" as a parameter
-        self.order_dict["available_capital"] = float(self.order_dict["broker"].acc_dict["AvailableFunds"])
+        self.order_dict["available_capital"] = float(self.order_dict["broker"].acc_dict[self.order_dict["funds"]])
 
     def get_stocks_quantity(self):
         self.order_dict["risk_unit"] = abs(self.order_dict["entry"] - self.order_dict["sl"])
@@ -14,7 +13,7 @@ class IbPositionSizing():
         return quantity
 
     def get_options_quantity(self):
-        self.order_dict["risk_unit"] = abs((self.order_dict["entry"] - self.order_dict["sl"]) * self.order_dict["delta"])*self.order_dict["multiplier"]
+        self.order_dict["risk_unit"] = abs(self.order_dict["entry"] - self.order_dict["sl"]) * self.order_dict["multiplier"]
         position = PositionSizing(self.order_dict)
         quantity = position.options_quantity()
         return quantity

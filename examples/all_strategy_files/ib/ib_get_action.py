@@ -1,4 +1,4 @@
-from strategies.all_strategy_files.data.get_options_data import getOptions1
+from big_algo_framework.data.td import TDData
 
 class IbGetAction():
     def __init__(self, order_dict):
@@ -30,10 +30,11 @@ class IbGetAction():
             "option_type": "ALL"
         }
 
+        data = TDData()
         # Based on the direction, derive the option price and build the order_dict
         if self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "CALL"
-            options_df = getOptions1(options_dict)
+            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] >= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -45,12 +46,13 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[self.order_dict["option_strikes"] - 1]["strikePrice"]
             self.order_dict["right"] = 'C'
-            self.order_dict["delta"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_delta"]
+            self.order_dict["ask"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_ask"]
+            self.order_dict["bid"] = dff.iloc[self.order_dict["option_strikes"] - 1]["call_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["call_multiplier"]
 
         elif self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "PUT"
-            options_df = getOptions1(options_dict)
+            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] <= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -62,12 +64,13 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[self.order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[self.order_dict["option_strikes"] - 1]["strikePrice"]
             self.order_dict["right"] = 'P'
-            self.order_dict["delta"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_delta"]
+            self.order_dict["ask"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_ask"]
+            self.order_dict["bid"] = dff.iloc[self.order_dict["option_strikes"] - 1]["put_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["put_multiplier"]
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "PUT"
-            options_df = getOptions1(options_dict)
+            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] <= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -80,12 +83,13 @@ class IbGetAction():
                 "expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[-self.order_dict["option_strikes"]]["strikePrice"]
             self.order_dict["right"] = 'P'
-            self.order_dict["delta"] = dff.iloc[-self.order_dict["option_strikes"]]["put_delta"]
+            self.order_dict["ask"] = dff.iloc[-self.order_dict["option_strikes"]]["put_ask"]
+            self.order_dict["bid"] = dff.iloc[-self.order_dict["option_strikes"]]["put_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["put_multiplier"]
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "CALL"
-            options_df = getOptions1(options_dict)
+            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
 
             if self.order_dict["option_range"] == "OTM":
                 df = options_df.loc[(options_df['strikePrice'] >= self.order_dict["entry"]) & (options_df['daysToExpiration'] >= self.order_dict["option_expiry_days"])]
@@ -97,12 +101,11 @@ class IbGetAction():
             self.order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-self.order_dict["option_strikes"]]["expirationDate"].strftime("%Y%m%d")
             self.order_dict["strike"] = dff.iloc[-self.order_dict["option_strikes"]]["strikePrice"]
             self.order_dict["right"] = 'C'
-            self.order_dict["delta"] = dff.iloc[-self.order_dict["option_strikes"]]["call_delta"]
+            self.order_dict["ask"] = dff.iloc[-self.order_dict["option_strikes"]]["call_ask"]
+            self.order_dict["bid"] = dff.iloc[-self.order_dict["option_strikes"]]["call_bid"]
             self.order_dict["multiplier"] = dff.iloc[-self.order_dict["option_strikes"]]["call_multiplier"]
 
         # Build order_dict and get the contract
         self.order_dict["primary_exchange"] = ""
         self.order_dict["open_action"] = self.order_dict["option_action"]
         self.order_dict["close_action"] = "SELL" if self.order_dict["open_action"] == "BUY" else "BUY"
-
-

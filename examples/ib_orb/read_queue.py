@@ -1,11 +1,12 @@
 import queue
 import traceback
 import datetime
-from strategies.all_strategy_files.webhooks.ib_conn import *
-from strategies.all_strategy_files.child_classes.brokers_ib_child import *
-from strategies.all_strategy_files.database.database import createDB
-from strategies.ib_orb import config
-from strategies.ib_orb.strategy import IBORB
+import threading
+import time
+from big_algo_framework.brokers.ib import IB
+from big_algo_framework.big.create_db import create_db
+from examples.ib_orb import config
+from examples.ib_orb.strategy import IBORB
 
 ib_orb_queue = queue.Queue()
 broker_2 = None
@@ -32,6 +33,7 @@ def run_ib_orb():
             ip_address = config.ib_account["orb_ip_address"]
             port = config.ib_account["orb_port"]
             ib_client = config.ib_account["orb_ib_client"]
+            funds = config.risk_param["orb_funds"]
             total_risk = config.risk_param["orb_total_risk"]
             total_risk_units = config.risk_param["orb_total_risk_units"]
             max_position_percent = config.risk_param["orb_max_position_percent"]
@@ -43,13 +45,13 @@ def run_ib_orb():
             currency = config.contract["orb_currency"]
             exchange = config.contract["orb_exchange"]
 
-            db = createDB(database_name)
+            db = create_db(database_name, "examples/all_strategy_files/config.ini")
             time.sleep(1)
 
             global broker_2
             if (broker_2 == None) or (not broker_2.isConnected()):
-                broker_2 = IbChild(db, orders_table)
-                config.orb_oid = connect_ib(broker_2, ip_address, port, ib_client)
+                broker_2 = IB()
+                config.orb_oid = broker_2.connect_broker(broker_2, ip_address, port, ib_client)
 
             order_dict = {"broker": broker_2,
                           "db": db,
@@ -79,6 +81,7 @@ def run_ib_orb():
                           "orders_table": orders_table,
                           "strategy_table": strategy_table,
                           "account_no": account_no,
+                          "funds": funds,
                           "total_risk": total_risk,
                           "total_risk_units": total_risk_units,
                           "max_position_percent": max_position_percent
