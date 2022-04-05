@@ -45,7 +45,7 @@ class IBORB(Strategy):
         if self.order_dict["sec_type"] == "OPT":
             self.order_dict["entry"] = self.order_dict["ask"]
             self.order_dict["sl"] = self.order_dict["entry"] * 0.90
-            self.order_dict["tp1"] = self.order_dict["entry"] * 1.10
+            self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
 
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
