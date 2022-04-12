@@ -17,9 +17,6 @@ class IbSendOrders():
         self.order_dict["broker"].reqContractDetails(randint(0, 10000), self.order_dict["con"])
         time.sleep(1)
         cont_min_tick = self.order_dict["broker"].mintick
-        # TODO: Error with some stocks on the min tick. Its returning 0.0001 for stocks like PLTR and AMC
-        print("MIN TICK:::", cont_min_tick)
-        print(self.order_dict)
 
         # TODO: Maybe not a good place to write entry/sl/tp, since now everytime we call get_contract, it runs these lines!
         # Adjust the entry/sl/tp to take into account the mintick
