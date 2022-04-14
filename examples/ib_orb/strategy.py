@@ -41,11 +41,15 @@ class IBORB(Strategy):
         if self.order_dict["sec_type"] == "OPT":
             action.get_options_action()
 
-        # If we are trading options, then overwrite the entry/sl/tp parameters
+        # If we are trading options, then overwrite the entry/sl/tp parameters taking into consideration whether we are buying/selling options
         if self.order_dict["sec_type"] == "OPT":
             self.order_dict["entry"] = self.order_dict["ask"]
-            self.order_dict["sl"] = self.order_dict["entry"] * 0.90
-            self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "BUY":
+                self.order_dict["sl"] = self.order_dict["entry"] * 0.90
+                self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "SELL":
+                self.order_dict["tp1"] = self.order_dict["entry"] * 0.90
+                self.order_dict["sl"] = self.order_dict["entry"] * 1.20
 
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
