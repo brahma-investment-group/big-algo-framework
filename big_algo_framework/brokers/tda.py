@@ -71,10 +71,10 @@ class TDA(Broker):
             tda_tif = orders.common.Duration.DAY
 
         if action == 'BUY':
-            stop_limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).clear_price().set_stop_price(stp_price).set_duration(tda_tif)
+            stop_limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
 
         else:
-            stop_limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).clear_price().set_stop_price(stp_price).set_duration(tda_tif)
+            stop_limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
 
         return stop_limit_order
 
@@ -125,10 +125,11 @@ class TDA(Broker):
         pass
 
     def send_order(self, order_dict, order):
-        self.c.place_order(order_dict["account_no"], order)
+        res = self.c.place_order(order_dict["account_no"], order)
+        #print(res.json())
 
     # Get Orders/Positions
-    def get_all_order(self, order_dict):
+    def get_all_orders(self, order_dict):
         fields = self.c.Account.Fields('orders')
         response = self.c.get_account(order_dict["account_no"], fields = fields)
 
@@ -166,7 +167,7 @@ class TDA(Broker):
 
     def close_position(self, order_dict):
         mkt_order = self.get_market_order(order_dict)
-        self.send_order(mkt_order)
+        self.send_order(order_dict, mkt_order)
 
     def close_all_positions(self, order_dict):
         open_positions = self.get_all_positions(order_dict)
@@ -178,9 +179,9 @@ class TDA(Broker):
             short_quantity = positions[i]["shortQuantity"]
 
             if long_quantity > 0:
-                order_dict =  {"ticker": ticker, "quantity": long_quantity}
+                order_dict =  {"ticker": ticker, "mkt_quantity": long_quantity, "mkt_action":"SELL", "account_no": order_dict["account_no"]}
 
             if short_quantity > 0:
-                order_dict =  {"ticker": ticker, "quantity": short_quantity}
+                order_dict =  {"ticker": ticker, "mkt_quantity": short_quantity, "mkt_action":"BUY", "account_no": order_dict["account_no"]}
 
             self.close_position(order_dict)
