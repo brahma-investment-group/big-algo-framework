@@ -100,9 +100,9 @@ class TDA_SQZMOM(Strategy):
         """Replace Order"""
         #self.td.replace_order(8151146909, lmt_order, self.order_dict)
         """Send Order"""
-        #self.td.send_order(self.order_dict, lmt_order)
+        self.td.send_order(self.order_dict, trigger_order)
         """Cancel All Orders"""
-        self.td.cancel_all_orders(self.order_dict)
+        #self.td.cancel_all_orders(self.order_dict)
         """Close All Positions"""
         #self.td.close_all_positions(self.order_dict)
 
