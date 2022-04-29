@@ -7,9 +7,9 @@ from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from examples.all_strategy_files.ib.ib_get_action import IbGetAction
 from big_algo_framework.strategies.abstract_strategy import *
-from examples.ib_orb import config
+from examples.ib_strat import config
 
-class IBORB(Strategy):
+class IBSTRAT(Strategy):
     def __init__(self, order_dict):
         super().__init__()
         self.is_position = False
@@ -33,7 +33,7 @@ class IBORB(Strategy):
     def before_send_orders(self):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
+        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=0, second=0)
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
@@ -76,8 +76,7 @@ class IBORB(Strategy):
     def send_orders(self):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
-        send_order.send_lmt_stp_order()
-        config.orb_oid = send_order.send_lmt_stp_order()
+        config.strat_oid = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):
         data_list = []

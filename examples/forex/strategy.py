@@ -3,6 +3,7 @@ from examples.forex import config
 from big_algo_framework.big.position_sizing import PositionSizing
 from big_algo_framework.strategies.abstract_strategy import *
 from datetime import timedelta, timezone, datetime
+import MetaTrader5 as mt5
 
 deviation = 2
 magic = 21051987
@@ -23,7 +24,9 @@ class OrbForex(Strategy):
         # self.strategy_table = self.order_dict["strategy_table"]
 
         self.ticker = "EURUSD"
-        self.broker = MT()
+        self.order_dict["ticker"] = self.ticker
+
+        self.broker = MT(config.mt_account["account"], config.mt_account["server"], config.mt_account["password"])
         # self.entry_time = self.order_dict["entry_time"]
         self.entry = 1.05
         self.sl = 0.99
@@ -49,11 +52,11 @@ class OrbForex(Strategy):
 
 
     def check_positions(self):
-        if not self.broker.is_exist_positions():
+        if not self.broker.get_all_positions(self.order_dict):
             self.is_position = True
 
     def check_open_orders(self):
-        if not self.broker.is_exist_orders():
+        if not self.broker.get_all_orders(self.order_dict):
             self.is_order = True
 
     def before_send_orders(self):
@@ -96,11 +99,11 @@ class OrbForex(Strategy):
         pass
 
     def start(self):
-        self.broker.init_client(config.mt_account["account"], config.mt_account["server"], config.mt_account["password"])
+        # self.broker.init_client(config.mt_account["account"], config.mt_account["server"], config.mt_account["password"])
 
         if self.is_close == 1:
             print("Closing Period")
-            self.broker.closeAllPositions()
+            self.broker.close_all_positions()
 
     def send_orders(self):
         order = self.broker.get_limit_order(self.order_dict)

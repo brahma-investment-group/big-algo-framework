@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from examples.ib_orb.read_queue import *
+from examples.ib_strat.read_queue import *
 from big_algo_framework.big.social_media import SocialMedia
 
 app = FastAPI()
@@ -49,3 +50,7 @@ async def ib_orb(webhook_message: webhook_message):
         social_media = SocialMedia(webhook_message)
         await social_media.send_discord_alerts(discord_data)
         await social_media.send_twitter_alerts(twitter_data)
+
+@app.post('/ib/strat')
+async def ib_strat(webhook_message: webhook_message):
+    ib_strat_queue.put(webhook_message)
