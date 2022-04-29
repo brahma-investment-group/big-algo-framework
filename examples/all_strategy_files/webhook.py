@@ -50,7 +50,3 @@ async def ib_orb(webhook_message: webhook_message):
         social_media = SocialMedia(webhook_message)
         await social_media.send_discord_alerts(discord_data)
         await social_media.send_twitter_alerts(twitter_data)
-
-@app.post('/ib/strat')
-async def ib_strat(webhook_message: webhook_message):
-    ib_strat_queue.put(webhook_message)
