@@ -11,6 +11,7 @@ examples/all_strategy_files/*/__pycache__/
 examples/all_strategy_files/config.ini
 
 examples/*/config.py
+
 examples/__pycache__/
 examples/*/__pycache__/
 

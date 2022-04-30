@@ -17,9 +17,6 @@ class IbSendOrders():
         self.order_dict["broker"].reqContractDetails(randint(0, 10000), self.order_dict["con"])
         time.sleep(1)
         cont_min_tick = self.order_dict["broker"].mintick
-        # TODO: Error with some stocks on the min tick. Its returning 0.0001 for stocks like PLTR and AMC
-        print("MIN TICK:::", cont_min_tick)
-        print(self.order_dict)
 
         # TODO: Maybe not a good place to write entry/sl/tp, since now everytime we call get_contract, it runs these lines!
         # Adjust the entry/sl/tp to take into account the mintick
@@ -65,10 +62,9 @@ class IbSendOrders():
         self.get_underlying_contract()
 
         # Parent Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["mkt_order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         parent_id = self.order_dict["mkt_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
 
@@ -84,10 +80,9 @@ class IbSendOrders():
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
 
         # Stoploss Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["mkt_order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
@@ -102,10 +97,9 @@ class IbSendOrders():
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
 
         # Profit Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["mkt_order_id"] = config.orb_oid
+        self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
 
@@ -119,14 +113,15 @@ class IbSendOrders():
         order.conditions.append(self.tp_price_condition)
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
 
+        return self.order_dict["order_id"]
+
     def send_lmt_stp_order(self):
         self.get_contract()
 
         # Parent Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["slo_order_id"] = config.orb_oid
+        self.order_dict["slo_order_id"] = self.order_dict["order_id"]
         parent_id = self.order_dict["slo_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
 
@@ -143,10 +138,9 @@ class IbSendOrders():
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
 
         # Stoploss Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["so_order_id"] = config.orb_oid
+        self.order_dict["so_order_id"] = self.order_dict["order_id"]
         self.order_dict["so_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
@@ -161,10 +155,9 @@ class IbSendOrders():
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
 
         # Profit Order for Order 1
-        config.orb_oid = config.orb_oid + 1
+        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        self.order_dict["order_id"] = config.orb_oid
-        self.order_dict["lo_order_id"] = config.orb_oid
+        self.order_dict["lo_order_id"] = self.order_dict["order_id"]
         self.order_dict["lo_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
 
@@ -177,3 +170,5 @@ class IbSendOrders():
 
         order = self.order_dict["broker"].get_limit_order(self.order_dict)
         self.order_dict["broker"].send_order(self.order_dict, self.order_dict["con"], order)
+
+        return self.order_dict["order_id"]
