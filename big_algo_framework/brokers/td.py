@@ -1,15 +1,16 @@
 from big_algo_framework.brokers.abstract_broker import Broker
+from datetime import datetime
 import time
 import threading
 from sqlalchemy import text
 import pandas as pd
-from tda import auth, orders
 from tda.orders.common import OrderType, PriceLinkBasis, PriceLinkType, StopPriceLinkType, first_triggers_second, one_cancels_other
 from tda.orders.options import option_buy_to_open_limit, option_sell_to_close_limit, option_sell_to_close_market, option_buy_to_open_market,option_sell_to_open_market, option_buy_to_close_market, option_sell_to_close_limit, option_buy_to_close_limit, option_sell_to_open_limit
 from tda.orders.common import Duration, Session
 from tda.orders.common import OrderType
 from tda.orders.equities import equity_buy_market, equity_buy_limit, equity_sell_market, equity_sell_limit, equity_buy_to_cover_market, equity_sell_short_market, equity_sell_short_limit, equity_buy_to_cover_limit
 from tda.orders.generic import OrderBuilder
+from tda import auth, orders
 
 
 class TDA(Broker):
@@ -43,8 +44,8 @@ class TDA(Broker):
         symbol = order_dict["ticker"]
         quantity = order_dict["mkt_quantity"]
         action = order_dict["mkt_action"] # "BUY" or "SELL"
-        sec_type = order_dict["sec_type"] # "STK" or "OPT"
-        instruction = order_dict["instruction"] # "OPEN" or "CLOSE"
+        sec_type = order_dict["mkt_sec_type"] # "STK" or "OPT"
+        instruction = order_dict["mkt_instruction"] # "OPEN" or "CLOSE"
 
         if sec_type == "STK":
             if instruction == "OPEN":
@@ -83,8 +84,8 @@ class TDA(Broker):
         stp_price = order_dict["slo_stop_price"]
         tif = order_dict["slo_time_in_force"]
         action = order_dict["slo_action"]
-        sec_type = order_dict["sec_type"]
-        instruction = order_dict["instruction"]
+        sec_type = order_dict["slo_sec_type"]
+        instruction = order_dict["slo_instruction"]
 
         if tif == 'GTC':
             tda_tif = orders.common.Duration.GOOD_TILL_CANCEL
@@ -95,32 +96,32 @@ class TDA(Broker):
         elif tif == 'DAY':
             tda_tif = orders.common.Duration.DAY
 
-            if sec_type == "STK":
-                if instruction == "OPEN":
-                    if action == "BUY":
-                        stop_limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        stop_limit_order = equity_sell_short_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                elif instruction == "CLOSE":
-                    if action == "BUY":
-                        stop_limit_order = equity_buy_to_cover_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        stop_limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+        if sec_type == "STK":
+            if instruction == "OPEN":
+                if action == "BUY":
+                    stop_limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    stop_limit_order = equity_sell_short_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+            elif instruction == "CLOSE":
+                if action == "BUY":
+                    stop_limit_order = equity_buy_to_cover_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    stop_limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
 
-            elif sec_type == "OPT":
-                if instruction == "OPEN":
-                    if action == "BUY":
-                        stop_limit_order = option_buy_to_open_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        stop_limit_order = option_sell_to_open_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                elif instruction == "CLOSE":
-                    if action == "BUY":
-                        stop_limit_order = option_buy_to_close_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        stop_limit_order = option_sell_to_close_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+        elif sec_type == "OPT":
+            if instruction == "OPEN":
+                if action == "BUY":
+                    stop_limit_order = option_buy_to_open_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    stop_limit_order = option_sell_to_open_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+            elif instruction == "CLOSE":
+                if action == "BUY":
+                    stop_limit_order = option_buy_to_close_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    stop_limit_order = option_sell_to_close_limit(symbol, quantity, lmt_price).set_order_type(OrderType.STOP_LIMIT).set_stop_price(stp_price).set_duration(tda_tif)
 
-            else:
-                pass # integrate error handling
+        else:
+            pass # integrate error handling
 
         return stop_limit_order
 
@@ -130,8 +131,8 @@ class TDA(Broker):
         lmt_price = order_dict["lo_limit_price"]
         tif = order_dict["lo_time_in_force"]
         action = order_dict["lo_action"]
-        sec_type = order_dict["sec_type"]
-        instruction = order_dict["instruction"]
+        sec_type = order_dict["lo_sec_type"]
+        instruction = order_dict["lo_instruction"]
 
         if tif == 'GTC':
             tda_tif = orders.common.Duration.GOOD_TILL_CANCEL
@@ -142,32 +143,32 @@ class TDA(Broker):
         elif tif == 'DAY':
             tda_tif = orders.common.Duration.DAY
 
-            if sec_type == "STK":
-                if instruction == "OPEN":
-                    if action == "BUY":
-                        limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        limit_order = equity_sell_short_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                elif instruction == "CLOSE":
-                    if action == "BUY":
-                        limit_order = equity_buy_to_cover_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+        if sec_type == "STK":
+            if instruction == "OPEN":
+                if action == "BUY":
+                    limit_order = equity_buy_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    limit_order = equity_sell_short_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+            elif instruction == "CLOSE":
+                if action == "BUY":
+                    limit_order = equity_buy_to_cover_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    limit_order = equity_sell_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
 
-            elif sec_type == "OPT":
-                if instruction == "OPEN":
-                    if action == "BUY":
-                        limit_order = option_buy_to_open_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        limit_order = option_sell_to_open_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                elif instruction == "CLOSE":
-                    if action == "BUY":
-                        limit_order = option_buy_to_close_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
-                    elif action == "SELL":
-                        limit_order = option_sell_to_close_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+        elif sec_type == "OPT":
+            if instruction == "OPEN":
+                if action == "BUY":
+                    limit_order = option_buy_to_open_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    limit_order = option_sell_to_open_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+            elif instruction == "CLOSE":
+                if action == "BUY":
+                    limit_order = option_buy_to_close_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
+                elif action == "SELL":
+                    limit_order = option_sell_to_close_limit(symbol, quantity, lmt_price).set_duration(tda_tif)
 
-            else:
-                pass # integrate error handling
+        else:
+            pass # integrate error handling
 
         return limit_order
 
@@ -192,8 +193,22 @@ class TDA(Broker):
         pass
 
     def send_order(self, order_dict, order):
-        res = self.c.place_order(order_dict["account_no"], order)
-        #print(res.json())
+        try:
+            res = self.c.place_order(order_dict["account_no"], order)
+                    # HTTP status Code
+            print("Status:", res.status_code, "--->", datetime.now())
+            try:
+                # Actual TDA response. Not applicable to every order
+                print(res.json())
+            except:
+                pass
+            if res.status_code == 201:
+                print('Order/s Sent!!!')
+        except Exception as exc:
+            print(f'exception in order: {str(exc)}')
+            #status = 'error: '+str(Exception)
+
+
 
     # 04. Get Orders/Positions
     def get_all_orders(self, order_dict):

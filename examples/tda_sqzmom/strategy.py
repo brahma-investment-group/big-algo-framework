@@ -1,10 +1,13 @@
 from datetime import datetime
 import pandas as pd
 
-from examples.tda_sqzmom import config
-from big_algo_framework.brokers.tda import *
+import config
+import os, sys
+sys.path.append(os.path.abspath('C:/Users/Owner/Desktop/Projects/big-algo'))
+#from big_algo_framework.brokers.tda import *
 from big_algo_framework.strategies.abstract_strategy import *
 from dateutil import tz
+from big_algo_framework.brokers import td
 
 
 
@@ -28,19 +31,25 @@ class TDA_SQZMOM(Strategy):
         # self.is_order = pos.check_ib_orders()
 
     def before_send_orders(self):
-       self.order_dict["ticker"] = "TME"
+       self.order_dict["ticker"] = "TSLA_050622P875" #ticker symbol or option symbol (option format = ticker_mmddyyCstrike)
        self.order_dict["mkt_quantity"] = 1
        self.order_dict["mkt_action"] = "BUY"
        self.order_dict["quantity"] = self.order_dict["mkt_quantity"]
-       self.order_dict["lo_quantity"] = 2
-       self.order_dict["lo_limit_price"] = 4.50
+       self.order_dict["mkt_sec_type"] = "OPT" # "STK" or "OPT"
+       self.order_dict["mkt_instruction"] = "OPEN" # "OPEN" or "CLOSE"
+       self.order_dict["lo_quantity"] = 1
+       self.order_dict["lo_limit_price"] = 42.10
        self.order_dict["lo_time_in_force"] = "GTC"
        self.order_dict["lo_action"] = "BUY"
+       self.order_dict["lo_sec_type"] = "OPT" # "STK" or "OPT"
+       self.order_dict["lo_instruction"] = "OPEN" # "OPEN" or "CLOSE"
        self.order_dict["slo_quantity"] = 1
-       self.order_dict["slo_limit_price"] = 5.10
-       self.order_dict["slo_stop_price"] = 4.98
+       self.order_dict["slo_limit_price"] = 42.20
+       self.order_dict["slo_stop_price"] = 42.30
        self.order_dict["slo_time_in_force"] = "GTC"
        self.order_dict["slo_action"] = "BUY"
+       self.order_dict["slo_sec_type"] = "OPT" # "STK" or "OPT"
+       self.order_dict["slo_instruction"] = "OPEN" # "OPEN" or "CLOSE"
         # # Derive gtd time
         # entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
         # self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
@@ -76,7 +85,7 @@ class TDA_SQZMOM(Strategy):
         redirect_uri = config.td_account["redirect_uri"]
         chromedriver_path = config.td_account["chromedriver_path"]
 
-        self.td = TDA(token_path, api_key, redirect_uri, chromedriver_path)
+        self.td = td.TDA(token_path, api_key, redirect_uri, chromedriver_path)
         # # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         # self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
         # self.order_dict["broker"].set_strategy_status(self.order_dict)
