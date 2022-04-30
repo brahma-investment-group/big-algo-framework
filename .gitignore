@@ -1,5 +1,4 @@
 venv/
-algo/
 .idea/
 big_algo_framework/__pycache__/
 big_algo_framework/*/__pycache__/
@@ -10,7 +9,9 @@ examples/all_strategy_files/__pycache__/
 examples/all_strategy_files/*/__pycache__/
 examples/all_strategy_files/config.ini
 
-examples/*/config.py
+examples/ib_orb/config.py
+examples/forex/config.py
+
 examples/__pycache__/
 examples/*/__pycache__/
 
@@ -18,6 +19,3 @@ examples/test.txt
 examples/test_bb_rev.py
 
 ngrok.exe
-
-examples/chromedriver.exe
-examples/token.json
