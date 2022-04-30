@@ -1,4 +1,5 @@
 venv/
+algo/
 .idea/
 big_algo_framework/__pycache__/
 big_algo_framework/*/__pycache__/
@@ -18,3 +19,6 @@ examples/test.txt
 examples/test_bb_rev.py
 
 ngrok.exe
+
+examples/chromedriver.exe
+examples/token.json
