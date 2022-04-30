@@ -77,7 +77,7 @@ class IBORB(Strategy):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
         send_order.send_lmt_stp_order()
-        config.orb_oid = send_order.send_lmt_stp_order()
+        config.ib_order_id = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):
         data_list = []

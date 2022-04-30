@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from examples.ib_orb.read_queue import *
-from examples.ib_strat.read_queue import *
 from big_algo_framework.big.social_media import SocialMedia
 
 app = FastAPI()
@@ -30,7 +29,7 @@ async def ib_orb(webhook_message: webhook_message):
 
     if webhook_message.is_close == 0:
         discord_data = {
-            "webhook": config.discord["orb"],
+            "webhook": config.discord["webhook"],
             "description": "FREE Alerts -  Opening Range Breakout (ORB) Strategy",
         }
 

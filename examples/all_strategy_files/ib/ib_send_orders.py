@@ -64,7 +64,6 @@ class IbSendOrders():
         # Parent Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         parent_id = self.order_dict["mkt_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
@@ -83,7 +82,6 @@ class IbSendOrders():
         # Stoploss Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
@@ -101,7 +99,6 @@ class IbSendOrders():
         # Profit Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["mkt_order_id"] = self.order_dict["order_id"]
         self.order_dict["mkt_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
@@ -124,7 +121,6 @@ class IbSendOrders():
         # Parent Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["slo_order_id"] = self.order_dict["order_id"]
         parent_id = self.order_dict["slo_order_id"]
         self.dashboard_dict[1]["parent_order_id"] = self.order_dict["order_id"]
@@ -144,7 +140,6 @@ class IbSendOrders():
         # Stoploss Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["so_order_id"] = self.order_dict["order_id"]
         self.order_dict["so_parent_order_id"] = parent_id
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
@@ -162,7 +157,6 @@ class IbSendOrders():
         # Profit Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
 
-        # self.order_dict["order_id"] = config.orb_oid
         self.order_dict["lo_order_id"] = self.order_dict["order_id"]
         self.order_dict["lo_parent_order_id"] = parent_id
         self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
