@@ -7,6 +7,7 @@ from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from examples.all_strategy_files.ib.ib_get_action import IbGetAction
 from big_algo_framework.strategies.abstract_strategy import *
+from examples.ib_orb import config
 
 class IBORB(Strategy):
     def __init__(self, order_dict):
@@ -32,7 +33,7 @@ class IBORB(Strategy):
     def before_send_orders(self):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
+        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
@@ -41,11 +42,15 @@ class IBORB(Strategy):
         if self.order_dict["sec_type"] == "OPT":
             action.get_options_action()
 
-        # If we are trading options, then overwrite the entry/sl/tp parameters
+        # If we are trading options, then overwrite the entry/sl/tp parameters taking into consideration whether we are buying/selling options
         if self.order_dict["sec_type"] == "OPT":
             self.order_dict["entry"] = self.order_dict["ask"]
-            self.order_dict["sl"] = self.order_dict["entry"] * 0.90
-            self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "BUY":
+                self.order_dict["sl"] = self.order_dict["entry"] * 0.90
+                self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "SELL":
+                self.order_dict["tp1"] = self.order_dict["entry"] * 0.90
+                self.order_dict["sl"] = self.order_dict["entry"] * 1.20
 
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
@@ -72,6 +77,7 @@ class IBORB(Strategy):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
         send_order.send_lmt_stp_order()
+        config.ib_order_id = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):
         data_list = []

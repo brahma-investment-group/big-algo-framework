@@ -2,10 +2,7 @@ import MetaTrader5 as mt5
 from big_algo_framework.brokers.abstract_broker import Broker
 
 class MT(Broker):
-    def __init__(self):
-        pass
-
-    def init_client(self, login, server, password):
+    def __init__(self, login, server, password):
         res = mt5.initialize(login=login, server=server, password=password)
 
         if res:
@@ -14,23 +11,14 @@ class MT(Broker):
             print("Connection to MT5 Failed, Error Code =", mt5.last_error())
             quit()
 
-    def get_market_order(self, order_dict):
+    def connect_broker(self):
         pass
-        # market_order = {
-        #     "action": mt5.TRADE_ACTION_DEAL,
-        #     "symbol": order_dict["ticker"],
-        #     "volume": order_dict["mkt_quantity"],
-        #     "type": order_dict["mkt_action"],
-        #     "tp": order_dict["mkt_tp"],
-        #     "sl": order_dict["mkt_sl"],
-        #     "deviation": order_dict["deviation"],
-        #     "magic": order_dict["magic"],
-        #     "comment": order_dict["comment"],
-        #     "type_time": order_dict["mkt_time_in_force"],
-        #     "type_filling": mt5.ORDER_FILLING_IOC
-        # }
 
-        # return market_order
+    def get_market_order(self):
+        pass
+
+    def get_stop_limit_order(self):
+        pass
 
     def get_limit_order(self, order_dict):
         limit_order = {
@@ -54,13 +42,14 @@ class MT(Broker):
 
         return limit_order
 
-    def get_stop_limit_order(self, order_dict):
+    
+    def get_stop_order(self):
         pass
 
-    def get_stop_order(self, order_dict):
+    def send_oto_order(self):
         pass
 
-    def send_bracket_order(self, order_dict):
+    def send_oco_order(self):
         pass
 
     def send_order(self, order_dict):
@@ -68,11 +57,26 @@ class MT(Broker):
         if res.retcode != mt5.TRADE_RETCODE_DONE:
             print("Order Sending Failed, retcode={}".format(res.retcode))
             print(res)
+    
+    def get_order(self, order_dict):
+        orders = mt5.orders_get(symbol=order_dict["ticker"])
 
-    def set_strategy_status(self, order_dict):
+    def get_all_orders(self):
+        orders = mt5.orders_get()
+
+        if len(orders) > 0:
+            print("Total orders =", len(orders))
+            for order in orders:
+                print(order)
+            return True
+
+        else:
+            return False
+    
+    def get_position(self):
         pass
 
-    def is_exist_positions(self, order_dict):
+    def get_all_positions(self, order_dict):
         positions = mt5.positions_get(symbol=order_dict["ticker"])
 
         if len(positions) > 0:
@@ -83,21 +87,15 @@ class MT(Broker):
 
         else:
             return False
-
-    def is_exist_orders(self, order_dict):
-        orders = mt5.orders_get(symbol=order_dict["ticker"])
-
-        if len(orders) > 0:
-            print("Total orders =", len(orders))
-            for order in orders:
-                print(order)
-            return True
-
-        else:
-            return False
-
-    def closeAllPositions(self):
+    
+    def cancel_order(self):
         pass
-        # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
 
-        # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
+    def cancel_all_orders(self):
+        pass
+
+    def close_position(self):
+        pass
+
+    def close_all_positions(self):
+        pass

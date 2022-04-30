@@ -15,7 +15,7 @@ def run_ib_orb():
     while True:
         webhook_message = ib_orb_queue.get()
 
-        if webhook_message.passphrase != config.webhook["orb_passphrase"]:
+        if webhook_message.passphrase != config.webhook["passphrase"]:
             return {
                 "status": "fail",
                 "code": "401",
@@ -28,22 +28,22 @@ def run_ib_orb():
             # CONFIG INPUTS
             database_name = config.database["database_name"]
             orders_table = config.database["orders_table"]
-            strategy_table = config.database["orb_strategy_table"]
-            account_no = config.ib_account["orb_account_no"]
-            ip_address = config.ib_account["orb_ip_address"]
-            port = config.ib_account["orb_port"]
-            ib_client = config.ib_account["orb_ib_client"]
-            funds = config.risk_param["orb_funds"]
-            total_risk = config.risk_param["orb_total_risk"]
-            total_risk_units = config.risk_param["orb_total_risk_units"]
-            max_position_percent = config.risk_param["orb_max_position_percent"]
-            sec_type = config.contract["orb_sec_type"]
-            option_action = config.contract["orb_option_action"]
-            option_range = config.contract["orb_option_range"]
-            option_strikes = config.contract["orb_option_strikes"]
-            option_expiry_days = config.contract["orb_option_expiry_days"]
-            currency = config.contract["orb_currency"]
-            exchange = config.contract["orb_exchange"]
+            strategy_table = config.database["strategy_table"]
+            account_no = config.ib_account["account_no"]
+            ip_address = config.ib_account["ip_address"]
+            port = config.ib_account["port"]
+            ib_client = config.ib_account["ib_client"]
+            funds = config.risk_param["funds"]
+            total_risk = config.risk_param["total_risk"]
+            total_risk_units = config.risk_param["total_risk_units"]
+            max_position_percent = config.risk_param["max_position_percent"]
+            sec_type = config.contract["sec_type"]
+            option_action = config.contract["option_action"]
+            option_range = config.contract["option_range"]
+            option_strikes = config.contract["option_strikes"]
+            option_expiry_days = config.contract["option_expiry_days"]
+            currency = config.contract["currency"]
+            exchange = config.contract["exchange"]
 
             db = create_db(database_name, "examples/all_strategy_files/config.ini")
             time.sleep(1)
@@ -51,10 +51,11 @@ def run_ib_orb():
             global broker_2
             if (broker_2 == None) or (not broker_2.isConnected()):
                 broker_2 = IB()
-                config.orb_oid = broker_2.connect_broker(broker_2, ip_address, port, ib_client)
+                config.ib_order_id = broker_2.connect_broker(broker_2, ip_address, port, ib_client)
 
             order_dict = {"broker": broker_2,
                           "db": db,
+                          "order_id": config.ib_order_id,
                           "ticker": webhook_message.ticker,
                           "primary_exchange": webhook_message.exchange,
                           "time_frame": webhook_message.time_frame,

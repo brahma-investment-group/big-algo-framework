@@ -29,7 +29,7 @@ async def ib_orb(webhook_message: webhook_message):
 
     if webhook_message.is_close == 0:
         discord_data = {
-            "webhook": config.discord["orb"],
+            "webhook": config.discord["webhook"],
             "description": "FREE Alerts -  Opening Range Breakout (ORB) Strategy",
         }
 
