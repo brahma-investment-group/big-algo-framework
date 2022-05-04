@@ -18,11 +18,17 @@ class TDA_SQZMOM(Strategy):
         self.is_order = False
 
         self.order_dict = order_dict.copy()
+        self.order_dict["is_close"] = 0
+        # self.order_dict["open_action"] = ""
+        # self.order_dict["close_action"] = ""
 
     def check_positions(self):
         # TD Check Order Position Class
         self.is_position = True
         self.is_order = True
+        # pos = IbCheckOrderPositions(self.order_dict)
+        # self.is_position = pos.check_ib_positions()
+        # self.is_order = pos.check_ib_orders()
 
     def before_send_orders(self):
        self.order_dict["ticker"] = "TSLA_050622P875" #ticker symbol or option symbol (option format = ticker_mmddyyCstrike)
@@ -112,12 +118,17 @@ class TDA_SQZMOM(Strategy):
     def execute(self):
         self.start()
 
-        # if self.order_dict["is_close"] == 0:
-        self.check_positions()
-        if self.is_position:
-            self.check_open_orders()
-            if self.is_order:
-                self.before_send_orders()
+        if self.order_dict["is_close"] == 0:
+            self.check_positions()
+            if self.is_position:
+                self.check_open_orders()
+                if self.is_order:
+                    self.before_send_orders()
 
-                if self.order_dict["quantity"] > 0:
-                    self.send_orders()
+                    if self.order_dict["quantity"] > 0:
+                        self.send_orders()
+        #print(self.order_dict)
+
+order_dict = {}
+strat = TDA_SQZMOM(order_dict)
+strat.execute()
