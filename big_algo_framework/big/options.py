@@ -1,6 +1,67 @@
 import pandas as pd
 import numpy as np
 
+def filter_option_contract(order_dict, options_df):
+    if order_dict["direction"] == "Bullish" and order_dict["option_action"] == "BUY":
+        if order_dict["option_range"] == "OTM":
+            df = options_df.loc[(options_df['strikePrice'] >= order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        elif order_dict["option_range"] == "ITM":
+            df = options_df.loc[(options_df['strikePrice'] < order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+        dff = dff.sort_values(by='strikePrice', ascending=True if order_dict["option_range"] == "OTM" else False)
+
+        order_dict["lastTradeDateOrContractMonth"] = dff.iloc[order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
+        order_dict["strike"] = dff.iloc[order_dict["option_strikes"] - 1]["strikePrice"]
+        order_dict["right"] = 'C'
+        order_dict["ask"] = dff.iloc[order_dict["option_strikes"] - 1]["call_ask"]
+        order_dict["bid"] = dff.iloc[order_dict["option_strikes"] - 1]["call_bid"]
+        order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["call_multiplier"]
+
+    elif order_dict["direction"] == "Bullish" and order_dict["option_action"] == "SELL":
+        if order_dict["option_range"] == "OTM":
+            df = options_df.loc[(options_df['strikePrice'] <= order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        elif order_dict["option_range"] == "ITM":
+            df = options_df.loc[(options_df['strikePrice'] > order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+        dff = dff.sort_values(by='strikePrice', ascending=False if order_dict["option_range"] == "OTM" else True)
+
+        order_dict["lastTradeDateOrContractMonth"] = dff.iloc[order_dict["option_strikes"] - 1]["expirationDate"].strftime("%Y%m%d")
+        order_dict["strike"] = dff.iloc[order_dict["option_strikes"] - 1]["strikePrice"]
+        order_dict["right"] = 'P'
+        order_dict["ask"] = dff.iloc[order_dict["option_strikes"] - 1]["put_ask"]
+        order_dict["bid"] = dff.iloc[order_dict["option_strikes"] - 1]["put_bid"]
+        order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["put_multiplier"]
+
+    elif order_dict["direction"] == "Bearish" and order_dict["option_action"] == "BUY":
+        if order_dict["option_range"] == "OTM":
+            df = options_df.loc[(options_df['strikePrice'] <= order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        elif order_dict["option_range"] == "ITM":
+            df = options_df.loc[(options_df['strikePrice'] > order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+        dff = dff.sort_values(by='strikePrice', ascending=True if order_dict["option_range"] == "OTM" else False)
+
+        order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-order_dict["option_strikes"]]["expirationDate"].strftime("%Y%m%d")
+        order_dict["strike"] = dff.iloc[-order_dict["option_strikes"]]["strikePrice"]
+        order_dict["right"] = 'P'
+        order_dict["ask"] = dff.iloc[-order_dict["option_strikes"]]["put_ask"]
+        order_dict["bid"] = dff.iloc[-order_dict["option_strikes"]]["put_bid"]
+        order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["put_multiplier"]
+
+    elif order_dict["direction"] == "Bearish" and order_dict["option_action"] == "SELL":
+        if order_dict["option_range"] == "OTM":
+            df = options_df.loc[(options_df['strikePrice'] >= order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        elif order_dict["option_range"] == "ITM":
+            df = options_df.loc[(options_df['strikePrice'] < order_dict["entry"]) & (options_df['daysToExpiration'] >= order_dict["option_expiry_days"])]
+        dff = df[df["daysToExpiration"] == df["daysToExpiration"].min()]
+        dff = dff.sort_values(by='strikePrice', ascending=False if order_dict["option_range"] == "OTM" else True)
+
+        order_dict["lastTradeDateOrContractMonth"] = dff.iloc[-order_dict["option_strikes"]]["expirationDate"].strftime("%Y%m%d")
+        order_dict["strike"] = dff.iloc[-order_dict["option_strikes"]]["strikePrice"]
+        order_dict["right"] = 'C'
+        order_dict["ask"] = dff.iloc[-order_dict["option_strikes"]]["call_ask"]
+        order_dict["bid"] = dff.iloc[-order_dict["option_strikes"]]["call_bid"]
+        order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["call_multiplier"]
+
 def get_option_ratios(call_options, put_options, ticker):
     options_chain = pd.merge(call_options, put_options, how='outer',
                              on=['strikePrice', 'expirationDate', 'daysToExpiration'],
