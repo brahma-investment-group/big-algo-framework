@@ -6,6 +6,7 @@ from examples.all_strategy_files.ib.ib_check_order_positions import IbCheckOrder
 from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from examples.all_strategy_files.ib.ib_get_action import IbGetAction
+from examples.all_strategy_files.ib.ib_filter_options import IbFilterOptions
 from big_algo_framework.strategies.abstract_strategy import *
 from examples.ib_orb import config
 
@@ -34,6 +35,10 @@ class IBORB(Strategy):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
         self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
+
+        # IB Filter Options Class
+        filter = IbFilterOptions(self.order_dict)
+        filter.filter_options()
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
