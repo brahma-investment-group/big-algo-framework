@@ -194,7 +194,6 @@ class TDA(Broker):
 
     def send_order(self, order_dict, order):
         try:
-            print("Hi Naga", order)
             res = self.c.place_order(order_dict["account_no"], order)
                     # HTTP status Code
             print("Status:", res.status_code, "--->", datetime.now())
@@ -207,9 +206,6 @@ class TDA(Broker):
                 print('Order/s Sent!!!')
         except Exception as exc:
             print(f'exception in order: {str(exc)}')
-            #status = 'error: '+str(Exception)
-
-
 
     # 04. Get Orders/Positions
     def get_all_orders(self, order_dict):

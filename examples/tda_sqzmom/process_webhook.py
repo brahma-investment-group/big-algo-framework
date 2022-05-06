@@ -1,5 +1,5 @@
 import os, sys
-sys.path.append(os.path.abspath('C:/Users/Owner/Desktop/Projects/big-algo'))
+sys.path.append(os.path.abspath('C:/Users/Owner/Desktop/Projects/big/big-algo-framework'))
 import config
 from examples.tda_sqzmom.strategy import TDA_SQZMOM
 import datetime
@@ -32,7 +32,6 @@ def process_webhook(webhook_message):
         print(datetime.datetime.now(), ": ", order_dict["ticker"])
         x = TDA_SQZMOM(order_dict)
         x.execute()
-        print("statement")
 
     except Exception as exc:
         print(f'exception in option_order: {str(exc)}')
