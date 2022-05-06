@@ -8,6 +8,9 @@ sys.path.append(os.path.abspath('C:/Users/Owner/Desktop/Projects/big-algo'))
 from big_algo_framework.strategies.abstract_strategy import *
 from dateutil import tz
 from big_algo_framework.brokers import td
+from big_algo_framework.data.td import TDData
+from big_algo_framework.big.options import filter_option_contract
+from big_algo_framework.big.helper import truncate
 
 
 
@@ -19,55 +22,71 @@ class TDA_SQZMOM(Strategy):
 
         self.order_dict = order_dict.copy()
 
+
     def check_positions(self):
         # TD Check Order Position Class
         self.is_position = True
         self.is_order = True
 
     def before_send_orders(self):
-       self.order_dict["ticker"] = "TSLA_050622P875" #ticker symbol or option symbol (option format = ticker_mmddyyCstrike)
-       self.order_dict["mkt_quantity"] = 1
-       self.order_dict["mkt_action"] = "BUY"
-       self.order_dict["quantity"] = self.order_dict["mkt_quantity"]
-       self.order_dict["mkt_sec_type"] = "OPT" # "STK" or "OPT"
-       self.order_dict["mkt_instruction"] = "OPEN" # "OPEN" or "CLOSE"
-       self.order_dict["lo_quantity"] = 1
-       self.order_dict["lo_limit_price"] = 42.10
+
+       self.order_dict["option_range"] = 'OTM'
+       if self.order_dict["putcall"] == "CALL":
+           self.order_dict['direction'] = "Bullish"
+       else:
+           self.order_dict['direction'] = "Bearish"
+       self.order_dict["option_action"] = "BUY"
+       self.order_dict["option_expiry_days"] = self.order_dict["dte"]
+       self.order_dict["option_strikes"] = 1
+       self.order_dict["entry"] = self.order_dict["u_price"]
+
+       options_dict = {
+            "days_forward": 10,
+            "ticker": self.order_dict["ticker"],
+            "strike_count": '',
+            "include_quotes": "FALSE",
+            "strategy": "SINGLE",
+            "interval": '',
+            "strike": '',
+            "range": self.order_dict["option_range"],
+            "volatility": '',
+            "underlying_price": '',
+            "interest_rate": '',
+            "days_to_expiration": '',
+            "exp_month": "ALL",
+            "option_type": "ALL",
+            "contract_type": self.order_dict["putcall"]
+        }
+
+       data = TDData()
+    #    if self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "BUY":
+       options_df = data.get_options_data(options_dict, "examples/tda_sqzmom/config.ini")
+       filter_option_contract(self.order_dict, options_df)
+
+       price = (self.order_dict["ask"] + self.order_dict["bid"]) / 2
+
+       self.order_dict["lo_quantity"] = self.order_dict["quantity"]
+       self.order_dict["lo_limit_price"] = truncate(price, 2)
        self.order_dict["lo_time_in_force"] = "GTC"
        self.order_dict["lo_action"] = "BUY"
-       self.order_dict["lo_sec_type"] = "OPT" # "STK" or "OPT"
-       self.order_dict["lo_instruction"] = "OPEN" # "OPEN" or "CLOSE"
-       self.order_dict["slo_quantity"] = 1
-       self.order_dict["slo_limit_price"] = 42.20
-       self.order_dict["slo_stop_price"] = 42.30
+       self.order_dict["lo_instruction"] = "OPEN"
+       self.order_dict["lo_sec_type"] = "OPT" # "STK" or "OPT""
+
+       self.order_dict1 = self.order_dict.copy()
+    #    self.order_dict1["lo_quantity"] = self.order_dict["quantity"]
+       self.order_dict1["lo_limit_price"] = price + (price * .30)
+    #    self.order_dict1["lo_time_in_force"] = "GTC"
+       self.order_dict1["lo_action"] = "SELL"
+       self.order_dict1["lo_instruction"] = "CLOSE"
+    #    self.order_dict1["lo_sec_type"] = "OPT" # "STK" or "OPT"
+
+       self.order_dict["slo_quantity"] = self.order_dict["quantity"]
+       self.order_dict["slo_limit_price"] = price - (price * .20)
+       self.order_dict["slo_stop_price"] = price - (price * .18)
        self.order_dict["slo_time_in_force"] = "GTC"
-       self.order_dict["slo_action"] = "BUY"
+       self.order_dict["slo_action"] = "SELL"
        self.order_dict["slo_sec_type"] = "OPT" # "STK" or "OPT"
-       self.order_dict["slo_instruction"] = "OPEN" # "OPEN" or "CLOSE"
-        # # Derive gtd time
-        # entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        # self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=11, minute=00, second=0)
-
-        # # IB Action Class
-        # action = IbGetAction(self.order_dict)
-        # if self.order_dict["sec_type"] == "STK":
-        #     action.get_stocks_action()
-        # if self.order_dict["sec_type"] == "OPT":
-        #     action.get_options_action()
-
-        # # If we are trading options, then overwrite the entry/sl/tp parameters
-        # if self.order_dict["sec_type"] == "OPT":
-        #     self.order_dict["entry"] = self.order_dict["ask"]
-        #     self.order_dict["sl"] = self.order_dict["entry"] * 0.90
-        #     self.order_dict["tp1"] = self.order_dict["entry"] * 1.10
-
-        # # IB Position Sizing Class
-        # ib_pos_size = IbPositionSizing(self.order_dict)
-        # if self.order_dict["sec_type"] == "STK":
-        #     quantity = ib_pos_size.get_stocks_quantity()
-        # if self.order_dict["sec_type"] == "OPT":
-        #     quantity = ib_pos_size.get_options_quantity()
-        # self.order_dict["quantity"] = quantity
+       self.order_dict["slo_instruction"] = "CLOSE" # "OPEN" or "CLOSE"
 
     def check_trailing_stop(self):
         # TODO: Code the trailing stop based on amount/percentage
@@ -80,36 +99,20 @@ class TDA_SQZMOM(Strategy):
         chromedriver_path = config.td_account["chromedriver_path"]
 
         self.td = td.TDA(token_path, api_key, redirect_uri, chromedriver_path)
-        # # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
-        # self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
-        # self.order_dict["broker"].set_strategy_status(self.order_dict)
-
-        # if self.order_dict["is_close"] == 1:
-        #     print("Closing Period")
-        #     self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
 
     def send_orders(self):
         self.order_dict["account_no"] = config.td_account["account_no"]
-        """Market Order"""
-        mkt_order = self.td.get_market_order(self.order_dict)
-        """Limtit Order"""
-        lmt_order = self.td.get_limit_order(self.order_dict)
-        """Stop_Limit Order"""
-        stlmt_order = self.td.get_stop_limit_order(self.order_dict)
-        """OCO Order"""
-        oco_order = self.td.get_oco_order(lmt_order, stlmt_order)
-        """Trigger Order"""
-        trigger_order = self.td.get_oto_order(mkt_order, oco_order) #can be used to trigger oco
-        """Replace Order"""
-        #self.td.replace_order(8151146909, lmt_order, self.order_dict)
-        """Send Order"""
-        self.td.send_order(self.order_dict, trigger_order)
-        """Cancel All Orders"""
-        #self.td.cancel_all_orders(self.order_dict)
-        """Close All Positions"""
-        #self.td.close_all_positions(self.order_dict)
+
+        entry_order = self.td.get_limit_order(self.order_dict)
+        tp_order = self.td.get_limit_order(self.order_dict1)
+        sl_order = self.td.get_stop_limit_order(self.order_dict)
+        oco_order = self.td.get_oco_order(tp_order, sl_order)
+        trigger_order = self.td.get_oto_order(entry_order, oco_order)
+        print("some text", entry_order)
+        self.td.send_order(self.order_dict, entry_order)
 
     def execute(self):
+        print('1,2,3')
         self.start()
 
         # if self.order_dict["is_close"] == 0:
@@ -119,5 +122,5 @@ class TDA_SQZMOM(Strategy):
             if self.is_order:
                 self.before_send_orders()
 
-                if self.order_dict["quantity"] > 0:
+                if self.order_dict["quantity"] < 0:
                     self.send_orders()

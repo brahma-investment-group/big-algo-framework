@@ -194,6 +194,7 @@ class TDA(Broker):
 
     def send_order(self, order_dict, order):
         try:
+            print("Hi Naga", order)
             res = self.c.place_order(order_dict["account_no"], order)
                     # HTTP status Code
             print("Status:", res.status_code, "--->", datetime.now())
