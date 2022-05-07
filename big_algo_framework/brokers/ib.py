@@ -76,7 +76,6 @@ class IB(Broker, EWrapper, EClient):
         market_order.action = order_dict["mkt_action"]
         market_order.orderType = 'MKT'
         market_order.totalQuantity = order_dict["mkt_quantity"]
-        market_order.parentId = order_dict["mkt_parent_order_id"]
         market_order.tif = order_dict["mkt_time_in_force"]
         market_order.goodTillDate = order_dict["mkt_good_till_date"]
         market_order.account = order_dict["account_no"]
@@ -94,7 +93,6 @@ class IB(Broker, EWrapper, EClient):
         stop_limit_order.auxPrice = order_dict["slo_stop_price"]
         stop_limit_order.tif = order_dict["slo_time_in_force"]
         stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
-        stop_limit_order.parentId = order_dict["slo_parent_order_id"]
         stop_limit_order.account = order_dict["account_no"]
         stop_limit_order.transmit = order_dict["slo_transmit"]
 
@@ -109,7 +107,6 @@ class IB(Broker, EWrapper, EClient):
         limit_order.lmtPrice = order_dict["lo_limit_price"]
         limit_order.tif = order_dict["lo_time_in_force"]
         limit_order.goodTillDate = order_dict["lo_good_till_date"]
-        limit_order.parentId = order_dict["lo_parent_order_id"]
         limit_order.account = order_dict["account_no"]
         limit_order.transmit = order_dict["lo_transmit"]
 
@@ -124,65 +121,60 @@ class IB(Broker, EWrapper, EClient):
         stop_order.auxPrice = order_dict["so_stop_price"]
         stop_order.tif = order_dict["so_time_in_force"]
         stop_order.goodTillDate = order_dict["so_good_till_date"]
-        stop_order.parentId = order_dict["so_parent_order_id"]
         stop_order.account = order_dict["account_no"]
         stop_order.transmit = order_dict["so_transmit"]
 
         return stop_order
 
+    def get_oco_order(self, orders, oca_group_name, oca_group_type):
+        for o in orders:
+            o.ocaGroup = oca_group_name
+            o.ocaType = oca_group_type
+
+        return o
+
+    def get_oto_order(self, orders):
+        parent_order_id = orders[0].orderId
+        for o in orders:
+            o.parentId = parent_order_id
+
+        return o
+
     # Send Orders
-    def send_oto_order(self, *orders):
-        bracketOrder = []
-        for x in orders:
-            bracketOrder.append(x)
-
-        for o in bracketOrder:
-            self.client.placeOrder(o.orderId, self.contract, o)
-
-    def send_oco_order(self):
-        pass
-
-    def send_order(self, order_dict, contract, order):
-        self.client.placeOrder(order_dict["order_id"], contract, order)
+    def send_order(self, order_id, contract, order):
+        self.client.placeOrder(order_id, contract, order)
         time.sleep(1)
 
     # Get Orders/Positions
-    def get_order(self):
-        pass
+    def get_order_by_ticker(self, order_dict):
+        all_orders = self.get_all_orders(order_dict)
+        return all_orders[all_orders['cont_ticker'] == order_dict["ticker"]]
 
-    def get_all_orders(self):
-        pass
+    def get_all_orders(self, order_dict):
+        return pd.read_sql_query(f"select * from {order_dict['strategy_table']} where status IN ('Open');", con=order_dict['db'])
 
-    def get_position(self):
-        pass
+    def get_position_by_ticker(self, order_dict):
+        all_positions = self.get_all_positions(order_dict)
+        return all_positions[all_positions['cont_ticker'] == order_dict["ticker"]]
 
     def get_all_positions(self, order_dict):
-        ticker_pos = pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con = order_dict['db'])
-
-        if order_dict['ticker'] not in ticker_pos.values:
-            return True
-
-        else:
-            return False
+        return pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('In Progress');", con = order_dict['db'])
 
     # Cancel Orders/Close Positions
-    def cancel_order(self):
-        pass
+    def cancel_order(self, order_dict, order_id):
+        order_dict['broker'].cancelOrder(order_id)
 
-    def cancel_all_orders(self):
-        pass
+    def cancel_all_orders(self, order_dict):
+        open_orders = self.get_all_orders(order_dict)
+
+        for ind in open_orders.index:
+            order_id = open_orders['parent_order_id'][ind]
+            self.cancel_order(order_dict, order_id)
 
     def close_position(self):
         pass
 
     def close_all_positions(self, order_dict, underlying=False):
-        # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-        open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con = order_dict['db'])
-
-        for ind in open_orders.index:
-            order_id = open_orders['parent_order_id'][ind]
-            order_dict['broker'].cancelOrder(order_id)
-
         # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
         open_positions = pd.read_sql_query(
             f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])

@@ -34,17 +34,18 @@ class IBORB(Strategy):
     def before_send_orders(self):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
+        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=9, hour=19, minute=59, second=0)
 
-        # IB Filter Options Class
-        filter = IbFilterOptions(self.order_dict)
-        filter.filter_options()
+
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
         if self.order_dict["sec_type"] == "STK":
             action.get_stocks_action()
         if self.order_dict["sec_type"] == "OPT":
+            # IB Filter Options Class
+            filter = IbFilterOptions(self.order_dict)
+            filter.filter_options()
             action.get_options_action()
 
         # If we are trading options, then overwrite the entry/sl/tp parameters taking into consideration whether we are buying/selling options
@@ -70,6 +71,7 @@ class IBORB(Strategy):
         pass
 
     def start(self):
+        self.order_dict["broker"].cancel_all_orders(self.order_dict)
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
         self.order_dict["broker"].set_strategy_status(self.order_dict)
@@ -81,7 +83,7 @@ class IBORB(Strategy):
     def send_orders(self):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
-        send_order.send_lmt_stp_order()
+        # send_order.send_lmt_stp_order()
         config.ib_order_id = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):
