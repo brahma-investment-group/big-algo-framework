@@ -3,17 +3,8 @@ import configparser
 from sqlalchemy import create_engine
 
 #CREATE DATABASE
-def create_db(db_name, config_path):
+def create_db(db_name, host, user, password, port):
     try:
-        config = configparser.ConfigParser()
-        config.read(config_path)
-        database = config['DATABASE']
-
-        host = database["host"]
-        user = database["user"]
-        password = database["password"]
-        port = database["port"]
-
         conn = psycopg2.connect(host=host, user=user, password=password)
         conn.autocommit = True
         cur = conn.cursor()

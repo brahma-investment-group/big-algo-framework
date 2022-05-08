@@ -16,14 +16,6 @@ class IbSendOrders():
         # Using the contract, request details like mintick
         self.order_dict["broker"].reqContractDetails(randint(0, 10000), self.order_dict["con"])
         time.sleep(1)
-        cont_min_tick = self.order_dict["broker"].mintick
-
-        # TODO: Maybe not a good place to write entry/sl/tp, since now everytime we call get_contract, it runs these lines!
-        # Adjust the entry/sl/tp to take into account the mintick
-        self.order_dict["entry"] = self.order_dict["entry"] - (self.order_dict["entry"] % cont_min_tick)
-        self.order_dict["tp1"] = self.order_dict["tp1"] - (self.order_dict["tp1"] % cont_min_tick)
-        self.order_dict["tp2"] = self.order_dict["tp2"] - (self.order_dict["tp2"] % cont_min_tick)
-        self.order_dict["sl"] = self.order_dict["sl"] - (self.order_dict["sl"] % cont_min_tick)
 
     def get_underlying_contract(self):
         # Form the dictionary for the underlying and get the contract
@@ -175,6 +167,13 @@ class IbSendOrders():
 
     def send_lmt_stp_order(self):
         self.get_contract()
+        cont_min_tick = self.order_dict["broker"].mintick
+
+        # Adjust the entry/sl/tp to take into account the mintick
+        self.order_dict["entry"] = self.order_dict["entry"] - (self.order_dict["entry"] % cont_min_tick)
+        self.order_dict["tp1"] = self.order_dict["tp1"] - (self.order_dict["tp1"] % cont_min_tick)
+        self.order_dict["tp2"] = self.order_dict["tp2"] - (self.order_dict["tp2"] % cont_min_tick)
+        self.order_dict["sl"] = self.order_dict["sl"] - (self.order_dict["sl"] % cont_min_tick)
 
         # Parent Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
@@ -184,26 +183,13 @@ class IbSendOrders():
         self.order_dict["slo_action"] = self.order_dict["open_action"]
         self.order_dict["slo_quantity"] = self.order_dict["quantity"]
         self.order_dict["slo_stop_price"] = self.order_dict["entry"]
-        self.order_dict["slo_limit_price"] = self.order_dict["entry"]
+        self.order_dict["slo_limit_price"] = self.order_dict["entry"] * 1.10 # Setting limit price to 10% higher than stop price, so that in fast moving markets, we can still get an entry!
         self.order_dict["slo_time_in_force"] = "GTD"
         self.order_dict["slo_good_till_date"] = self.order_dict["gtd"].strftime('%Y%m%d %H:%M:%S')
         self.order_dict["slo_transmit"] = False
+        self.order_dict["slo_limit_price"] = self.order_dict["slo_limit_price"] - (self.order_dict["slo_limit_price"] % cont_min_tick)
 
         order1 = self.order_dict["broker"].get_stop_limit_order(self.order_dict)
-
-        # Stoploss Order for Order 1
-        self.order_dict["order_id"] = self.order_dict["order_id"] + 1
-        self.order_dict["so_order_id"] = self.order_dict["order_id"]
-        self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
-
-        self.order_dict["so_action"] = self.order_dict["close_action"]
-        self.order_dict["so_quantity"] = self.order_dict["quantity"]
-        self.order_dict["so_stop_price"] = self.order_dict["sl"]
-        self.order_dict["so_time_in_force"] = "GTC"
-        self.order_dict["so_good_till_date"] = ""
-        self.order_dict["so_transmit"] = False
-
-        order2 = self.order_dict["broker"].get_stop_order(self.order_dict)
 
         # Profit Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
@@ -215,33 +201,29 @@ class IbSendOrders():
         self.order_dict["lo_limit_price"] = self.order_dict["tp1"]
         self.order_dict["lo_time_in_force"] = "GTC"
         self.order_dict["lo_good_till_date"] = ""
-        self.order_dict["lo_transmit"] = True
+        self.order_dict["lo_transmit"] = False
 
-        order3 = self.order_dict["broker"].get_limit_order(self.order_dict)
+        order2 = self.order_dict["broker"].get_limit_order(self.order_dict)
 
-        # DUMMY Order 1
+        # Stoploss Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
+        self.order_dict["so_order_id"] = self.order_dict["order_id"]
+        self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
 
-        self.order_dict["lo_order_id"] = self.order_dict["order_id"]
-        self.order_dict["lo_parent_order_id"] = ""
-        self.dashboard_dict[1]["profit_order_id"] = self.order_dict["order_id"]
+        self.order_dict["so_action"] = self.order_dict["close_action"]
+        self.order_dict["so_quantity"] = self.order_dict["quantity"]
+        self.order_dict["so_stop_price"] = self.order_dict["sl"]
+        self.order_dict["so_time_in_force"] = "GTC"
+        self.order_dict["so_good_till_date"] = ""
+        self.order_dict["so_transmit"] = True
 
-        self.order_dict["lo_action"] = self.order_dict["open_action"]
-        self.order_dict["lo_quantity"] = self.order_dict["quantity"]
-        self.order_dict["lo_limit_price"] = self.order_dict["tp1"]
-        self.order_dict["lo_time_in_force"] = "GTC"
-        self.order_dict["lo_good_till_date"] = ""
-        self.order_dict["lo_transmit"] = True
+        order3 = self.order_dict["broker"].get_stop_order(self.order_dict)
+        order3 = self.order_dict["broker"].get_trailing_order([order3], "amount", self.order_dict["risk"], self.order_dict["sl"])
 
-        order4 = self.order_dict["broker"].get_limit_order(self.order_dict)
-
-        oco_orders = [order1, order4]
-        self.order_dict["broker"].get_oco_order(oco_orders, "oca_test", 1)
-
-        oto_order = [order1, order2, order3]
+        oto_order = [order1, order3]
         self.order_dict["broker"].get_oto_order(oto_order)
 
-        final_orders = [order1, order2, order3, order4]
+        final_orders = [order1, order3]
         for o in final_orders:
             self.order_dict["broker"].send_order(o.orderId, self.order_dict["con"], o)
 

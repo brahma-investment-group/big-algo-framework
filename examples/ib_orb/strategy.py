@@ -71,19 +71,20 @@ class IBORB(Strategy):
         pass
 
     def start(self):
-        self.order_dict["broker"].cancel_all_orders(self.order_dict)
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
         self.order_dict["broker"].set_strategy_status(self.order_dict)
 
-        if self.order_dict["is_close"] == 1:
+        # if self.order_dict["is_close"] == 1:
+        if self.order_dict["is_close"] == 0:
+
             print("Closing Period")
+            # self.order_dict["broker"].cancel_all_orders(self.order_dict)
             self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
 
     def send_orders(self):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
-        # send_order.send_lmt_stp_order()
         config.ib_order_id = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):

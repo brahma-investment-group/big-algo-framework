@@ -26,6 +26,10 @@ def run_ib_orb():
             print("Webhook Recieved:", webhook_message.dict())
 
             # CONFIG INPUTS
+            database_host = config.database["host"]
+            database_user = config.database["user"]
+            database_password = config.database["password"]
+            database_port = config.database["port"]
             database_name = config.database["database_name"]
             orders_table = config.database["orders_table"]
             strategy_table = config.database["strategy_table"]
@@ -44,8 +48,9 @@ def run_ib_orb():
             option_expiry_days = config.contract["option_expiry_days"]
             currency = config.contract["currency"]
             exchange = config.contract["exchange"]
+            tda_api = config.tda["api"]
 
-            db = create_db(database_name, "examples/all_strategy_files/config.ini")
+            db = create_db(database_name, database_host, database_user, database_password, database_port)
             time.sleep(1)
 
             global broker_2
@@ -85,7 +90,8 @@ def run_ib_orb():
                           "funds": funds,
                           "total_risk": total_risk,
                           "total_risk_units": total_risk_units,
-                          "max_position_percent": max_position_percent
+                          "max_position_percent": max_position_percent,
+                          "tda_api": tda_api
                           }
 
             print(datetime.datetime.now(), ": ", order_dict["ticker"])
