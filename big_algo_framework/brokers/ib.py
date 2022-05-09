@@ -1,4 +1,5 @@
 from big_algo_framework.brokers.abstract_broker import Broker
+from big_algo_framework.big.helper import truncate
 import time
 import threading
 from sqlalchemy import text
@@ -83,14 +84,14 @@ class IB(Broker, EWrapper, EClient):
 
         return market_order
 
-    def get_stop_limit_order(self, order_dict):
+    def get_stop_limit_order(self, order_dict, digits):
         stop_limit_order = Order()
         stop_limit_order.orderId = order_dict["slo_order_id"]
         stop_limit_order.action = order_dict["slo_action"]
         stop_limit_order.orderType = 'STP LMT'
         stop_limit_order.totalQuantity = order_dict["slo_quantity"]
-        stop_limit_order.lmtPrice = order_dict["slo_limit_price"]
-        stop_limit_order.auxPrice = order_dict["slo_stop_price"]
+        stop_limit_order.lmtPrice = truncate(order_dict["slo_limit_price"], digits)
+        stop_limit_order.auxPrice = truncate(order_dict["slo_stop_price"], digits)
         stop_limit_order.tif = order_dict["slo_time_in_force"]
         stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
         stop_limit_order.account = order_dict["account_no"]
@@ -98,13 +99,13 @@ class IB(Broker, EWrapper, EClient):
 
         return stop_limit_order
 
-    def get_limit_order(self, order_dict):
+    def get_limit_order(self, order_dict, digits):
         limit_order = Order()
         limit_order.orderId = order_dict["lo_order_id"]
         limit_order.action = order_dict["lo_action"]
         limit_order.orderType = 'LMT'
         limit_order.totalQuantity = order_dict["lo_quantity"]
-        limit_order.lmtPrice = order_dict["lo_limit_price"]
+        limit_order.lmtPrice = truncate(order_dict["lo_limit_price"], digits)
         limit_order.tif = order_dict["lo_time_in_force"]
         limit_order.goodTillDate = order_dict["lo_good_till_date"]
         limit_order.account = order_dict["account_no"]
@@ -112,13 +113,13 @@ class IB(Broker, EWrapper, EClient):
 
         return limit_order
 
-    def get_stop_order(self, order_dict):
+    def get_stop_order(self, order_dict, digits):
         stop_order = Order()
         stop_order.orderId = order_dict["so_order_id"]
         stop_order.action = order_dict["so_action"]
         stop_order.orderType = 'STP'
         stop_order.totalQuantity = order_dict["so_quantity"]
-        stop_order.auxPrice = order_dict["so_stop_price"]
+        stop_order.auxPrice = truncate(order_dict["so_stop_price"], digits)
         stop_order.tif = order_dict["so_time_in_force"]
         stop_order.goodTillDate = order_dict["so_good_till_date"]
         stop_order.account = order_dict["account_no"]
@@ -140,13 +141,13 @@ class IB(Broker, EWrapper, EClient):
 
         return o
 
-    def get_trailing_order(self, orders, trail_type, trail_amount, trail_stop):
+    def get_trailing_order(self, orders, trail_type, trail_amount, trail_stop, digits):
        for o in orders:
            o.orderType = "TRAIL"
-           o.trailStopPrice = trail_stop
+           o.trailStopPrice = truncate(trail_stop, digits)
 
            if str.upper(trail_type) == "AMOUNT":
-               o.auxPrice = trail_amount
+               o.auxPrice = truncate(trail_amount, digits)
 
            elif str.upper(trail_type) == "PERCENTAGE":
                o.auxPrice = ""
@@ -221,15 +222,11 @@ class IB(Broker, EWrapper, EClient):
             tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, is_greater_than, price)
             mkt_order.conditions.append(tp_price_condition)
 
-        broker.send_order(pos_order_dict, pos_con, mkt_order)
+        broker.send_order(pos_order_dict["order_id"], pos_con, mkt_order)
 
     def close_all_positions(self, order_dict, underlying=False):
-        # open_positions = pd.read_sql_query(
-        #     f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
-
         open_positions = pd.read_sql_query(
-            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.stoploss_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('Open');",
-            con=order_dict['db'])
+            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.stoploss_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
 
         for ind in open_positions.index:
             pos_order_dict = {

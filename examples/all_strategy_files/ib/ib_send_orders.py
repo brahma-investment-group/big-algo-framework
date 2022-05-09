@@ -36,6 +36,7 @@ class IbSendOrders():
         stocks_min_tick = self.order_dict["broker"].mintick
 
         # Adjust the entry/sl/tp to take into account the mintick
+        # TODO: Replace "%" formula with truncate function from big folder
         self.order_dict["entry"] = self.order_dict["entry"] - (self.order_dict["entry"] % stocks_min_tick)
         self.order_dict["tp1"] = self.order_dict["tp1"] - (self.order_dict["tp1"] % stocks_min_tick)
         self.order_dict["tp2"] = self.order_dict["tp2"] - (self.order_dict["tp2"] % stocks_min_tick)
@@ -169,11 +170,8 @@ class IbSendOrders():
         self.get_contract()
         cont_min_tick = self.order_dict["broker"].mintick
 
-        # Adjust the entry/sl/tp to take into account the mintick
-        self.order_dict["entry"] = self.order_dict["entry"] - (self.order_dict["entry"] % cont_min_tick)
-        self.order_dict["tp1"] = self.order_dict["tp1"] - (self.order_dict["tp1"] % cont_min_tick)
-        self.order_dict["tp2"] = self.order_dict["tp2"] - (self.order_dict["tp2"] % cont_min_tick)
-        self.order_dict["sl"] = self.order_dict["sl"] - (self.order_dict["sl"] % cont_min_tick)
+        s = str(cont_min_tick)
+        digits = len(s) - s.index('.') - 1
 
         # Parent Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
@@ -187,9 +185,8 @@ class IbSendOrders():
         self.order_dict["slo_time_in_force"] = "GTD"
         self.order_dict["slo_good_till_date"] = self.order_dict["gtd"].strftime('%Y%m%d %H:%M:%S')
         self.order_dict["slo_transmit"] = False
-        self.order_dict["slo_limit_price"] = self.order_dict["slo_limit_price"] - (self.order_dict["slo_limit_price"] % cont_min_tick)
 
-        order1 = self.order_dict["broker"].get_stop_limit_order(self.order_dict)
+        order1 = self.order_dict["broker"].get_stop_limit_order(self.order_dict, digits)
 
         # Profit Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
@@ -203,9 +200,9 @@ class IbSendOrders():
         self.order_dict["lo_good_till_date"] = ""
         self.order_dict["lo_transmit"] = False
 
-        order2 = self.order_dict["broker"].get_limit_order(self.order_dict)
+        order2 = self.order_dict["broker"].get_limit_order(self.order_dict, digits)
 
-        # Stoploss Order for Order 1
+        # # Stoploss Order for Order 1
         self.order_dict["order_id"] = self.order_dict["order_id"] + 1
         self.order_dict["so_order_id"] = self.order_dict["order_id"]
         self.dashboard_dict[1]["stoploss_order_id"] = self.order_dict["order_id"]
@@ -217,8 +214,8 @@ class IbSendOrders():
         self.order_dict["so_good_till_date"] = ""
         self.order_dict["so_transmit"] = True
 
-        order3 = self.order_dict["broker"].get_stop_order(self.order_dict)
-        order3 = self.order_dict["broker"].get_trailing_order([order3], "amount", self.order_dict["risk"], self.order_dict["sl"])
+        order3 = self.order_dict["broker"].get_stop_order(self.order_dict, digits)
+        order3 = self.order_dict["broker"].get_trailing_order([order3], "amount", self.order_dict["risk"], self.order_dict["sl"], digits)
 
         oto_order = [order1, order3]
         self.order_dict["broker"].get_oto_order(oto_order)

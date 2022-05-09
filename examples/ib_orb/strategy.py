@@ -34,9 +34,7 @@ class IBORB(Strategy):
     def before_send_orders(self):
         # Derive gtd time
         entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=9, hour=19, minute=59, second=0)
-
-
+        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
@@ -75,11 +73,9 @@ class IBORB(Strategy):
         self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)
         self.order_dict["broker"].set_strategy_status(self.order_dict)
 
-        # if self.order_dict["is_close"] == 1:
-        if self.order_dict["is_close"] == 0:
-
+        if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            # self.order_dict["broker"].cancel_all_orders(self.order_dict)
+            self.order_dict["broker"].cancel_all_orders(self.order_dict)
             self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
 
     def send_orders(self):
