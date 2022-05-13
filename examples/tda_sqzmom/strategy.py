@@ -1,12 +1,12 @@
 from datetime import datetime
 import pandas as pd
+from dateutil import tz
 
-import config
 import os, sys
 sys.path.append(os.path.abspath('C:/Users/Owner/Desktop/Projects/big/big-algo-framework'))
-#from big_algo_framework.brokers.tda import *
+
+from examples.tda_sqzmom import config
 from big_algo_framework.strategies.abstract_strategy import *
-from dateutil import tz
 from big_algo_framework.brokers import td
 from big_algo_framework.data.td import TDData
 from big_algo_framework.big.options import filter_option_contract
@@ -21,8 +21,16 @@ class TDA_SQZMOM(Strategy):
 
     def check_positions(self):
         # TD Check Order Position Class
-        self.is_position = True
-        self.is_order = True
+        pos = self.td.get_position_by_ticker(self.order_dict)
+        orders = self.td.get_order_by_ticker(self.order_dict)
+
+        if pos:
+            self.is_position = True
+            print("Existing Position Found:", self.order_dict['ticker'])
+
+        if orders:
+            self.is_order = True
+            print("Existing Order Found:", self.order_dict['ticker'])
 
     def before_send_orders(self):
        self.order_dict["option_range"] = 'OTM'
@@ -61,30 +69,40 @@ class TDA_SQZMOM(Strategy):
        price = (self.order_dict["ask"] + self.order_dict["bid"]) / 2
 
        self.order_dict["lo_quantity"] = self.order_dict["quantity"]
-       self.order_dict["lo_limit_price"] = truncate(price, 2)
+       self.order_dict["lo_limit_price"] = price
        self.order_dict["lo_time_in_force"] = "GTC"
        self.order_dict["lo_action"] = "BUY"
        self.order_dict["lo_instruction"] = "OPEN"
        self.order_dict["lo_sec_type"] = "OPT" # "STK" or "OPT""
 
        self.order_dict1 = self.order_dict.copy()
-       self.order_dict1["lo_limit_price"] = truncate(price + (price * .30), 2)
+       self.order_dict1["lo_limit_price"] = price + (price * .30)
        self.order_dict1["lo_action"] = "SELL"
        self.order_dict1["lo_instruction"] = "CLOSE"
 
        self.order_dict["slo_quantity"] = self.order_dict["quantity"]
-       self.order_dict["slo_limit_price"] = truncate(price - (price * .20), 2)
-       self.order_dict["slo_stop_price"] = truncate(price - (price * .18), 2)
+       self.order_dict["slo_limit_price"] = price - (price * .20)
+       self.order_dict["slo_stop_price"] = price - (price * .18)
        self.order_dict["slo_time_in_force"] = "GTC"
        self.order_dict["slo_action"] = "SELL"
        self.order_dict["slo_sec_type"] = "OPT" # "STK" or "OPT"
        self.order_dict["slo_instruction"] = "CLOSE" # "OPEN" or "CLOSE"
+
+       self.order_dict["tr_stop_quantity"] = self.order_dict["quantity"]
+       self.order_dict["price_link_type"] = "PERCENT"
+       self.order_dict["tr_stop_percent"] = 10
+       self.order_dict["tr_stop_price"] = 10.00
+       self.order_dict["tr_stop_time_in_force"] = "GTC"
+       self.order_dict["tr_stop_action"] = "SELL"
+       self.order_dict["tr_stop_sec_type"] = "OPT" # "STK" or "OPT"
+       self.order_dict["tr_stop_instruction"] = "CLOSE" # "OPEN" or "CLOSE"
 
     def check_trailing_stop(self):
         # TODO: Code the trailing stop based on amount/percentage
         pass
 
     def start(self):
+        self.order_dict["account_no"] = config.td_account["account_no"]
         token_path = config.td_account["token_path"]
         api_key = config.td_account["api_key"]
         redirect_uri = config.td_account["redirect_uri"]
@@ -93,12 +111,12 @@ class TDA_SQZMOM(Strategy):
         self.td = td.TDA(token_path, api_key, redirect_uri, chromedriver_path)
 
     def send_orders(self):
-        self.order_dict["account_no"] = config.td_account["account_no"]
 
         entry_order = self.td.get_limit_order(self.order_dict)
         tp_order = self.td.get_limit_order(self.order_dict1)
         sl_order = self.td.get_stop_limit_order(self.order_dict)
-        oco_order = self.td.get_oco_order(tp_order, sl_order)
+        tr_stop_order = self.td.get_trailing_stop_order(self.order_dict)
+        oco_order = self.td.get_oco_order(tr_stop_order, sl_order)
         trigger_order = self.td.get_oto_order(entry_order, oco_order)
         self.td.send_order(self.order_dict, trigger_order)
 
@@ -106,9 +124,9 @@ class TDA_SQZMOM(Strategy):
         self.start()
 
         self.check_positions()
-        if self.is_position:
+        if self.is_position == False:
             self.check_open_orders()
-            if self.is_order:
+            if self.is_order == False:
                 self.before_send_orders()
 
                 if self.order_dict["quantity"] > 0:
