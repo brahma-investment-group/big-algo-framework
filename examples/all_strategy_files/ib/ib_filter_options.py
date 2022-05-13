@@ -24,23 +24,25 @@ class IbFilterOptions():
         }
 
         data = TDData()
+        api_key = self.order_dict["tda_api"]
+
         # Based on the direction, derive the option price and build the order_dict
         if self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "CALL"
-            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, api_key)
             filter_option_contract(self.order_dict, options_df)
 
         elif self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "PUT"
-            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, api_key)
             filter_option_contract(self.order_dict, options_df)
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "BUY":
             options_dict["contract_type"] = "PUT"
-            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, api_key)
             filter_option_contract(self.order_dict, options_df)
 
         elif self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "SELL":
             options_dict["contract_type"] = "CALL"
-            options_df = data.get_options_data(options_dict, "examples/all_strategy_files/config.ini")
+            options_df = data.get_options_data(options_dict, api_key)
             filter_option_contract(self.order_dict, options_df)

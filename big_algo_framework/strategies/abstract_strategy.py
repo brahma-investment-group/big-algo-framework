@@ -45,12 +45,12 @@ class Strategy(ABC):
         self.check_positions()
         self.after_check_positions()
 
-        if self.is_position:
+        if not self.is_position:
             self.before_check_open_orders()
             self.check_open_orders()
             self.after_check_open_orders()
 
-            if self.is_order:
+            if not self.is_order:
                 self.before_send_orders()
                 self.send_orders()
                 self.after_send_orders()

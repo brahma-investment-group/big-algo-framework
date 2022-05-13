@@ -18,6 +18,7 @@ class webhook_message(BaseModel):
     direction: str
     passphrase: str
     is_close: int
+    mkt_close_time: int
 
 @app.get("/")
 async def root():

@@ -32,13 +32,13 @@ class Broker(ABC):
         )
 
     @abstractmethod
-    def send_oto_order(self, *kwargs):
+    def get_oto_order(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'send_oto_order' method."
         )
 
     @abstractmethod
-    def send_oco_order(self, *kwargs):
+    def get_oco_order(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'send_oco_order' method."
         )
@@ -50,7 +50,7 @@ class Broker(ABC):
         )
 
     @abstractmethod
-    def get_order(self, *kwargs):
+    def get_order_by_ticker(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'get_order' method."
         )
@@ -62,7 +62,7 @@ class Broker(ABC):
         )
 
     @abstractmethod
-    def get_position(self, *kwargs):
+    def get_position_by_ticker(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'get_position' method."
         )

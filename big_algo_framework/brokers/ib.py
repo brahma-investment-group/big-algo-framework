@@ -1,4 +1,5 @@
 from big_algo_framework.brokers.abstract_broker import Broker
+from big_algo_framework.big.helper import truncate
 import time
 import threading
 from sqlalchemy import text
@@ -76,188 +77,190 @@ class IB(Broker, EWrapper, EClient):
         market_order.action = order_dict["mkt_action"]
         market_order.orderType = 'MKT'
         market_order.totalQuantity = order_dict["mkt_quantity"]
-        market_order.parentId = order_dict["mkt_parent_order_id"]
         market_order.tif = order_dict["mkt_time_in_force"]
         market_order.goodTillDate = order_dict["mkt_good_till_date"]
+        market_order.goodAfterTime = order_dict["mkt_good_after_date"]
         market_order.account = order_dict["account_no"]
         market_order.transmit = order_dict["mkt_transmit"]
 
         return market_order
 
-    def get_stop_limit_order(self, order_dict):
+    def get_stop_limit_order(self, order_dict, digits=2):
         stop_limit_order = Order()
         stop_limit_order.orderId = order_dict["slo_order_id"]
         stop_limit_order.action = order_dict["slo_action"]
         stop_limit_order.orderType = 'STP LMT'
         stop_limit_order.totalQuantity = order_dict["slo_quantity"]
-        stop_limit_order.lmtPrice = order_dict["slo_limit_price"]
-        stop_limit_order.auxPrice = order_dict["slo_stop_price"]
+        stop_limit_order.lmtPrice = truncate(order_dict["slo_limit_price"], digits)
+        stop_limit_order.auxPrice = truncate(order_dict["slo_stop_price"], digits)
         stop_limit_order.tif = order_dict["slo_time_in_force"]
         stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
-        stop_limit_order.parentId = order_dict["slo_parent_order_id"]
+        stop_limit_order.goodAfterTime = order_dict["slo_good_after_date"]
         stop_limit_order.account = order_dict["account_no"]
         stop_limit_order.transmit = order_dict["slo_transmit"]
 
         return stop_limit_order
 
-    def get_limit_order(self, order_dict):
+    def get_limit_order(self, order_dict, digits=2):
         limit_order = Order()
         limit_order.orderId = order_dict["lo_order_id"]
         limit_order.action = order_dict["lo_action"]
         limit_order.orderType = 'LMT'
         limit_order.totalQuantity = order_dict["lo_quantity"]
-        limit_order.lmtPrice = order_dict["lo_limit_price"]
+        limit_order.lmtPrice = truncate(order_dict["lo_limit_price"], digits)
         limit_order.tif = order_dict["lo_time_in_force"]
         limit_order.goodTillDate = order_dict["lo_good_till_date"]
-        limit_order.parentId = order_dict["lo_parent_order_id"]
+        limit_order.goodAfterTime = order_dict["lo_good_after_date"]
         limit_order.account = order_dict["account_no"]
         limit_order.transmit = order_dict["lo_transmit"]
 
         return limit_order
 
-    def get_stop_order(self, order_dict):
+    def get_stop_order(self, order_dict, digits=2):
         stop_order = Order()
         stop_order.orderId = order_dict["so_order_id"]
         stop_order.action = order_dict["so_action"]
         stop_order.orderType = 'STP'
         stop_order.totalQuantity = order_dict["so_quantity"]
-        stop_order.auxPrice = order_dict["so_stop_price"]
+        stop_order.auxPrice = truncate(order_dict["so_stop_price"], digits)
         stop_order.tif = order_dict["so_time_in_force"]
         stop_order.goodTillDate = order_dict["so_good_till_date"]
-        stop_order.parentId = order_dict["so_parent_order_id"]
+        stop_order.goodAfterTime = order_dict["so_good_after_date"]
         stop_order.account = order_dict["account_no"]
         stop_order.transmit = order_dict["so_transmit"]
 
         return stop_order
 
+    def get_oco_order(self, orders, oca_group_name, oca_group_type):
+        for o in orders:
+            o.ocaGroup = oca_group_name
+            o.ocaType = oca_group_type
+
+        return o
+
+    def get_oto_order(self, orders):
+        parent_order_id = orders[0].orderId
+        for o in orders:
+            o.parentId = parent_order_id
+
+        return o
+
+    def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
+       for o in orders:
+           o.orderType = "TRAIL"
+           o.trailStopPrice = truncate(trail_stop, digits)
+
+           if str.upper(trail_type) == "AMOUNT":
+               o.auxPrice = truncate(trail_amount, digits)
+
+           elif str.upper(trail_type) == "PERCENTAGE":
+               o.auxPrice = ""
+               o.trailingPercent = trail_amount
+
+       return o
+
     # Send Orders
-    def send_oto_order(self, *orders):
-        bracketOrder = []
-        for x in orders:
-            bracketOrder.append(x)
-
-        for o in bracketOrder:
-            self.client.placeOrder(o.orderId, self.contract, o)
-
-    def send_oco_order(self):
-        pass
-
-    def send_order(self, order_dict, contract, order):
-        self.client.placeOrder(order_dict["order_id"], contract, order)
+    def send_order(self, order_id, contract, order):
+        self.client.placeOrder(order_id, contract, order)
         time.sleep(1)
 
     # Get Orders/Positions
-    def get_order(self):
-        pass
+    def get_order_by_ticker(self, order_dict):
+        all_orders = self.get_all_orders(order_dict)
+        return all_orders[all_orders['cont_ticker'] == order_dict["ticker"]]
 
-    def get_all_orders(self):
-        pass
+    def get_all_orders(self, order_dict):
+        return pd.read_sql_query(f"select * from {order_dict['strategy_table']} where status IN ('Open');", con=order_dict['db'])
 
-    def get_position(self):
-        pass
+    def get_position_by_ticker(self, order_dict):
+        all_positions = self.get_all_positions(order_dict)
+        return all_positions[all_positions['cont_ticker'] == order_dict["ticker"]]
 
     def get_all_positions(self, order_dict):
-        ticker_pos = pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('Open', 'In Progress');", con = order_dict['db'])
-
-        if order_dict['ticker'] not in ticker_pos.values:
-            return True
-
-        else:
-            return False
+        return pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('In Progress');", con = order_dict['db'])
 
     # Cancel Orders/Close Positions
-    def cancel_order(self):
-        pass
+    def cancel_order(self, order_dict, order_id):
+        order_dict['broker'].cancelOrder(order_id)
 
-    def cancel_all_orders(self):
-        pass
-
-    def close_position(self):
-        pass
-
-    def close_all_positions(self, order_dict, underlying=False):
-        # Lets check if we have an open order to enter the mkt. If we do, we close the order and cancel its child orders
-        open_orders = pd.read_sql_query(f"select parent_order_id from {order_dict['strategy_table']} WHERE status IN ('Open');", con = order_dict['db'])
+    def cancel_all_orders(self, order_dict):
+        open_orders = self.get_all_orders(order_dict)
 
         for ind in open_orders.index:
             order_id = open_orders['parent_order_id'][ind]
-            order_dict['broker'].cancelOrder(order_id)
+            self.cancel_order(order_dict, order_id)
 
-        # Lets check if we are already in a position and if so, we change the takeprofit to MKT order to close the position at current price
+    def close_position(self, pos_order_dict, underlying=False):
+        broker = pos_order_dict['broker']
+        sec_type = pos_order_dict['sec_type']
+        direction = pos_order_dict['direction']
+        opt_right = pos_order_dict['right']
+        stock_conid = pos_order_dict['stock_conid']
+        cont_exchange = pos_order_dict['exchange']
+
+        pos_con = broker.get_contract(pos_order_dict)
+        mkt_order = broker.get_market_order(pos_order_dict)
+
+        if underlying:
+            if sec_type == "STK":
+                is_greater_than = True if direction == "Bullish" else False
+                price = 0 if direction == "Bullish" else 99999
+
+            if sec_type == "OPT":
+                if opt_right == "C" and direction == "Bullish":
+                    is_greater_than = True
+                    price = 0
+
+                elif opt_right == "C" and direction == "Bearish":
+                    is_greater_than = False
+                    price = 99999
+
+                elif opt_right == "P" and direction == "Bullish":
+                    is_greater_than = False
+                    price = 99999
+
+                elif opt_right == "P" and direction == "Bearish":
+                    is_greater_than = True
+                    price = 0
+
+            tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, is_greater_than, price)
+            mkt_order.conditions.append(tp_price_condition)
+
+        broker.send_order(pos_order_dict["order_id"], pos_con, mkt_order)
+
+    def close_all_positions(self, order_dict, underlying=False):
         open_positions = pd.read_sql_query(
             f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
 
         for ind in open_positions.index:
-            cont_ticker = open_positions.iloc[ind]['cont_ticker']
-            sec_type = open_positions.iloc[ind]['sec_type']
-            cont_currency = open_positions.iloc[ind]['cont_currency']
-            cont_exchange = open_positions.iloc[ind]['cont_exchange']
-            primary_exchange = open_positions.iloc[ind]['primary_exchange']
-            stock_conid = open_positions.iloc[ind]['stock_conid']
-            direction = open_positions.iloc[ind]['direction']
-
-            order_id = open_positions.iloc[ind]['order_id']
-            remaining = open_positions.iloc[ind]['remaining']
-            action = open_positions.iloc[ind]['action']
-
-            cont_date = open_positions.iloc[ind]['cont_date']
-            strike = open_positions.iloc[ind]['strike']
-            opt_right = open_positions.iloc[ind]['opt_right']
-            multiplier = open_positions.iloc[ind]['multiplier']
-
             pos_order_dict = {
-                "ticker": cont_ticker,
-                "sec_type": sec_type,
-                "currency": cont_currency,
-                "exchange": cont_exchange,
-                "primary_exchange": primary_exchange,
+                "ticker": open_positions.iloc[ind]['cont_ticker'],
+                "sec_type": open_positions.iloc[ind]['sec_type'],
+                "currency": open_positions.iloc[ind]['cont_currency'],
+                "exchange": open_positions.iloc[ind]['cont_exchange'],
+                "primary_exchange": open_positions.iloc[ind]['primary_exchange'],
+                "stock_conid": open_positions.iloc[ind]['stock_conid'],
+                "direction": open_positions.iloc[ind]['direction'],
 
-                "lastTradeDateOrContractMonth": cont_date,
-                "strike": strike,
-                "right": opt_right,
-                "multiplier": multiplier,
+                "lastTradeDateOrContractMonth": open_positions.iloc[ind]['cont_date'],
+                "strike": open_positions.iloc[ind]['strike'],
+                "right": open_positions.iloc[ind]['opt_right'],
+                "multiplier": open_positions.iloc[ind]['multiplier'],
 
-                "mkt_order_id": order_id,
-                "mkt_action": action,
-                "mkt_quantity": remaining,
+                "mkt_order_id": open_positions.iloc[ind]['order_id'],
+                "mkt_action": open_positions.iloc[ind]['action'],
+                "mkt_quantity": open_positions.iloc[ind]['remaining'],
                 "mkt_parent_order_id": "",
                 "mkt_time_in_force": "",
                 "mkt_good_till_date": "",
                 "account_no": order_dict['account_no'],
                 "mkt_transmit": True,
 
-                "order_id": order_id
+                "order_id": open_positions.iloc[ind]['order_id'],
+                "broker": order_dict['broker']
             }
 
-            pos_con = order_dict['broker'].get_contract(pos_order_dict)
-            mkt_order = order_dict['broker'].get_market_order(pos_order_dict)
-
-            if underlying:
-                if sec_type == "STK":
-                    x = True if direction == "Bullish" else False
-                    price = 0 if direction == "Bullish" else 99999
-
-                if sec_type == "OPT":
-                    if opt_right == "C" and direction == "Bullish":
-                        x = True
-                        price = 0
-
-                    elif opt_right == "C" and direction == "Bearish":
-                        x = False
-                        price = 99999
-
-                    elif opt_right == "P" and direction == "Bullish":
-                        x = False
-                        price = 99999
-
-                    elif opt_right == "P" and direction == "Bearish":
-                        x = True
-                        price = 0
-
-                tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, x, price)
-                mkt_order.conditions.append(tp_price_condition)
-
-            order_dict['broker'].send_order(pos_order_dict, pos_con, mkt_order)
+            self.close_position(pos_order_dict, underlying)
 
     # Miscellaneous
     def getOrderID(self, client):
