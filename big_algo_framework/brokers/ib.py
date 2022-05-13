@@ -79,12 +79,13 @@ class IB(Broker, EWrapper, EClient):
         market_order.totalQuantity = order_dict["mkt_quantity"]
         market_order.tif = order_dict["mkt_time_in_force"]
         market_order.goodTillDate = order_dict["mkt_good_till_date"]
+        market_order.goodAfterTime = order_dict["mkt_good_after_date"]
         market_order.account = order_dict["account_no"]
         market_order.transmit = order_dict["mkt_transmit"]
 
         return market_order
 
-    def get_stop_limit_order(self, order_dict, digits):
+    def get_stop_limit_order(self, order_dict, digits=2):
         stop_limit_order = Order()
         stop_limit_order.orderId = order_dict["slo_order_id"]
         stop_limit_order.action = order_dict["slo_action"]
@@ -94,12 +95,13 @@ class IB(Broker, EWrapper, EClient):
         stop_limit_order.auxPrice = truncate(order_dict["slo_stop_price"], digits)
         stop_limit_order.tif = order_dict["slo_time_in_force"]
         stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
+        stop_limit_order.goodAfterTime = order_dict["slo_good_after_date"]
         stop_limit_order.account = order_dict["account_no"]
         stop_limit_order.transmit = order_dict["slo_transmit"]
 
         return stop_limit_order
 
-    def get_limit_order(self, order_dict, digits):
+    def get_limit_order(self, order_dict, digits=2):
         limit_order = Order()
         limit_order.orderId = order_dict["lo_order_id"]
         limit_order.action = order_dict["lo_action"]
@@ -108,12 +110,13 @@ class IB(Broker, EWrapper, EClient):
         limit_order.lmtPrice = truncate(order_dict["lo_limit_price"], digits)
         limit_order.tif = order_dict["lo_time_in_force"]
         limit_order.goodTillDate = order_dict["lo_good_till_date"]
+        limit_order.goodAfterTime = order_dict["lo_good_after_date"]
         limit_order.account = order_dict["account_no"]
         limit_order.transmit = order_dict["lo_transmit"]
 
         return limit_order
 
-    def get_stop_order(self, order_dict, digits):
+    def get_stop_order(self, order_dict, digits=2):
         stop_order = Order()
         stop_order.orderId = order_dict["so_order_id"]
         stop_order.action = order_dict["so_action"]
@@ -122,6 +125,7 @@ class IB(Broker, EWrapper, EClient):
         stop_order.auxPrice = truncate(order_dict["so_stop_price"], digits)
         stop_order.tif = order_dict["so_time_in_force"]
         stop_order.goodTillDate = order_dict["so_good_till_date"]
+        stop_order.goodAfterTime = order_dict["so_good_after_date"]
         stop_order.account = order_dict["account_no"]
         stop_order.transmit = order_dict["so_transmit"]
 
@@ -141,7 +145,7 @@ class IB(Broker, EWrapper, EClient):
 
         return o
 
-    def get_trailing_order(self, orders, trail_type, trail_amount, trail_stop, digits):
+    def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
        for o in orders:
            o.orderType = "TRAIL"
            o.trailStopPrice = truncate(trail_stop, digits)
@@ -226,7 +230,7 @@ class IB(Broker, EWrapper, EClient):
 
     def close_all_positions(self, order_dict, underlying=False):
         open_positions = pd.read_sql_query(
-            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.stoploss_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
+            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
 
         for ind in open_positions.index:
             pos_order_dict = {

@@ -72,6 +72,7 @@ def run_ib_orb():
                           "risk": webhook_message.risk,
                           "direction": webhook_message.direction,
                           "is_close": webhook_message.is_close,
+                          "mkt_close_time": webhook_message.mkt_close_time,
                           "sec_type": sec_type,
                           "option_action": option_action,
                           "option_range": option_range,

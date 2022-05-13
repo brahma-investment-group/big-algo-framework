@@ -1,4 +1,6 @@
 from datetime import datetime
+
+import pytz
 from dateutil import tz
 import pandas as pd
 
@@ -33,8 +35,12 @@ class IBORB(Strategy):
 
     def before_send_orders(self):
         # Derive gtd time
-        entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
-        self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=entry_time.day, hour=15, minute=59, second=0)
+        # entry_time = datetime.fromtimestamp(self.order_dict["entry_time"]/1000).astimezone(tz.gettz('America/New_York'))
+        # self.order_dict["gtd"] = datetime(year=entry_time.year, month=entry_time.month, day=11, hour=15, minute=45, second=0, tzinfo=pytz.UTC)
+
+        self.order_dict["gtd"] = datetime.fromtimestamp(self.order_dict["mkt_close_time"]/1000)
+
+        # print(datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S'))
 
         # IB Action Class
         action = IbGetAction(self.order_dict)
@@ -75,8 +81,8 @@ class IBORB(Strategy):
 
         if self.order_dict["is_close"] == 1:
             print("Closing Period")
-            self.order_dict["broker"].cancel_all_orders(self.order_dict)
-            self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
+            # self.order_dict["broker"].cancel_all_orders(self.order_dict)
+            # self.order_dict["broker"].close_all_positions(self.order_dict, underlying=False)
 
     def send_orders(self):
         # IB Send Orders Class
@@ -123,9 +129,9 @@ class IBORB(Strategy):
 
         if self.order_dict["is_close"] == 0:
             self.check_positions()
-            if self.is_position:
+            if not self.is_position:
                 self.check_open_orders()
-                if self.is_order:
+                if not self.is_order:
                     self.before_send_orders()
 
                     if self.order_dict["quantity"] > 0:
