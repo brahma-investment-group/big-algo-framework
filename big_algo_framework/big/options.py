@@ -15,6 +15,7 @@ def filter_option_contract(order_dict, options_df):
         order_dict["right"] = 'C'
         order_dict["ask"] = dff.iloc[order_dict["option_strikes"] - 1]["call_ask"]
         order_dict["bid"] = dff.iloc[order_dict["option_strikes"] - 1]["call_bid"]
+        order_dict["symbol"] = dff.iloc[order_dict["option_strikes"] - 1]["call_symbol"]
         order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["call_multiplier"]
 
     elif order_dict["direction"] == "Bullish" and order_dict["option_action"] == "SELL":
@@ -30,6 +31,7 @@ def filter_option_contract(order_dict, options_df):
         order_dict["right"] = 'P'
         order_dict["ask"] = dff.iloc[order_dict["option_strikes"] - 1]["put_ask"]
         order_dict["bid"] = dff.iloc[order_dict["option_strikes"] - 1]["put_bid"]
+        order_dict["symbol"] = dff.iloc[order_dict["option_strikes"] - 1]["put_symbol"]
         order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["put_multiplier"]
 
     elif order_dict["direction"] == "Bearish" and order_dict["option_action"] == "BUY":
@@ -45,6 +47,7 @@ def filter_option_contract(order_dict, options_df):
         order_dict["right"] = 'P'
         order_dict["ask"] = dff.iloc[-order_dict["option_strikes"]]["put_ask"]
         order_dict["bid"] = dff.iloc[-order_dict["option_strikes"]]["put_bid"]
+        order_dict["symbol"] = dff.iloc[-order_dict["option_strikes"]]["put_symbol"]
         order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["put_multiplier"]
 
     elif order_dict["direction"] == "Bearish" and order_dict["option_action"] == "SELL":
@@ -60,6 +63,7 @@ def filter_option_contract(order_dict, options_df):
         order_dict["right"] = 'C'
         order_dict["ask"] = dff.iloc[-order_dict["option_strikes"]]["call_ask"]
         order_dict["bid"] = dff.iloc[-order_dict["option_strikes"]]["call_bid"]
+        order_dict["symbol"] = dff.iloc[-order_dict["option_strikes"]]["call_symbol"]
         order_dict["multiplier"] = dff.iloc[-order_dict["option_strikes"]]["call_multiplier"]
 
 def get_option_ratios(call_options, put_options, ticker):
