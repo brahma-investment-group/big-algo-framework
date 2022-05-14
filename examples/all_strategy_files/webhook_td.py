@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from examples.tda_sqzmom.process_webhook import process_webhook
 
-
 app = FastAPI()
 
 class webhook_message(BaseModel):
@@ -13,7 +12,6 @@ class webhook_message(BaseModel):
         callput: str
         instruction: str
         passphrase: str
-
 
 @app.post('/test')
 def option_order(webhook_message: webhook_message):

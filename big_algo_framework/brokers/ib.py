@@ -12,15 +12,6 @@ from ibapi.order_condition import PriceCondition
 from ibapi.account_summary_tags import AccountSummaryTags
 
 class IB(Broker, EWrapper, EClient):
-    # Below is the class structure
-    # 01. Authentication
-    # 02. Asset
-    # 03. Prepare/Send Orders
-    # 04. Get Orders/Positions
-    # 05. Close Orders/Positions
-    # 06. Miscellaneous
-    # 07. IB SPECIFIC CALLBACK FUNCTIONS
-
     def __init__(self):
         EClient.__init__(self, self)
         self.orderId = 0
@@ -70,7 +61,7 @@ class IB(Broker, EWrapper, EClient):
 
         return self.contract
 
-    # Prepare Orders
+    # Prepare/Send Orders
     def get_market_order(self, order_dict):
         market_order = Order()
         market_order.orderId = order_dict["mkt_order_id"]
@@ -131,20 +122,6 @@ class IB(Broker, EWrapper, EClient):
 
         return stop_order
 
-    def get_oco_order(self, orders, oca_group_name, oca_group_type):
-        for o in orders:
-            o.ocaGroup = oca_group_name
-            o.ocaType = oca_group_type
-
-        return o
-
-    def get_oto_order(self, orders):
-        parent_order_id = orders[0].orderId
-        for o in orders:
-            o.parentId = parent_order_id
-
-        return o
-
     def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
        for o in orders:
            o.orderType = "TRAIL"
@@ -159,7 +136,20 @@ class IB(Broker, EWrapper, EClient):
 
        return o
 
-    # Send Orders
+    def get_oto_order(self, orders):
+        parent_order_id = orders[0].orderId
+        for o in orders:
+            o.parentId = parent_order_id
+
+        return o
+
+    def get_oco_order(self, orders, oca_group_name, oca_group_type):
+        for o in orders:
+            o.ocaGroup = oca_group_name
+            o.ocaType = oca_group_type
+
+        return o
+
     def send_order(self, order_id, contract, order):
         self.client.placeOrder(order_id, contract, order)
         time.sleep(1)
