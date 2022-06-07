@@ -125,7 +125,8 @@ class IB(Broker, EWrapper, EClient):
     def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
        for o in orders:
            o.orderType = "TRAIL"
-           o.trailStopPrice = truncate(trail_stop, digits)
+           if trail_stop != "":
+               o.trailStopPrice = truncate(trail_stop, digits)
 
            if str.upper(trail_type) == "AMOUNT":
                o.auxPrice = truncate(trail_amount, digits)

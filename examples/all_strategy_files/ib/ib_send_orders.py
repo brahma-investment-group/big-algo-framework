@@ -160,7 +160,7 @@ class IbSendOrders():
         self.order_dict["so_transmit"] = True
 
         order3 = self.order_dict["broker"].get_stop_order(self.order_dict, digits)
-        order3 = self.order_dict["broker"].get_trailing_stop_order([order3], "amount", self.order_dict["risk"], self.order_dict["sl"], digits)
+        order3 = self.order_dict["broker"].get_trailing_stop_order([order3], "amount", self.order_dict["risk"], "", digits)
 
         oto_order = [order1, order2, order3]
         self.order_dict["broker"].get_oto_order(oto_order)
