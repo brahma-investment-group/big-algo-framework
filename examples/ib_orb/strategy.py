@@ -70,10 +70,6 @@ class IBORB(Strategy):
             quantity = ib_pos_size.get_options_quantity()
         self.order_dict["quantity"] = quantity
 
-    def check_trailing_stop(self):
-        # TODO: Code the trailing stop based on amount/percentage
-        pass
-
     def start(self):
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
         self.order_dict["broker"].init_client(self.order_dict["broker"], self.order_dict)

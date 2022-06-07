@@ -32,6 +32,12 @@ class Broker(ABC):
         )
 
     @abstractmethod
+    def get_trailing_stop_order(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_stop_order' method."
+        )
+
+    @abstractmethod
     def get_oto_order(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'send_oto_order' method."

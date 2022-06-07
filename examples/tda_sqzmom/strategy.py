@@ -34,10 +34,12 @@ class TDA_SQZMOM(Strategy):
 
     def before_send_orders(self):
        self.order_dict["option_range"] = 'OTM'
+
        if self.order_dict["putcall"] == "CALL":
            self.order_dict['direction'] = "Bullish"
        else:
            self.order_dict['direction'] = "Bearish"
+
        self.order_dict["option_action"] = "BUY"
        self.order_dict["option_expiry_days"] = self.order_dict["dte"]
        self.order_dict["option_strikes"] = 1
@@ -97,10 +99,6 @@ class TDA_SQZMOM(Strategy):
        self.order_dict["tr_stop_sec_type"] = "OPT" # "STK" or "OPT"
        self.order_dict["tr_stop_instruction"] = "CLOSE" # "OPEN" or "CLOSE"
 
-    def check_trailing_stop(self):
-        # TODO: Code the trailing stop based on amount/percentage
-        pass
-
     def start(self):
         self.order_dict["account_no"] = config.td_account["account_no"]
         token_path = config.td_account["token_path"]
@@ -115,18 +113,21 @@ class TDA_SQZMOM(Strategy):
         entry_order = self.td.get_limit_order(self.order_dict)
         tp_order = self.td.get_limit_order(self.order_dict1)
         sl_order = self.td.get_stop_limit_order(self.order_dict)
+
         tr_stop_order = self.td.get_trailing_stop_order(self.order_dict)
+
         oco_order = self.td.get_oco_order(tr_stop_order, sl_order)
         trigger_order = self.td.get_oto_order(entry_order, oco_order)
+
         self.td.send_order(self.order_dict, trigger_order)
 
     def execute(self):
         self.start()
 
         self.check_positions()
-        if self.is_position == False:
+        if not self.is_position:
             self.check_open_orders()
-            if self.is_order == False:
+            if not self.is_order:
                 self.before_send_orders()
 
                 if self.order_dict["quantity"] > 0:

@@ -6,6 +6,7 @@ class IbGetAction():
         if self.order_dict["direction"] == "Bullish":
             self.order_dict["open_action"] = "BUY"
             self.order_dict["close_action"] = "SELL"
+
         elif self.order_dict["direction"] == "Bearish":
             self.order_dict["open_action"] = "SELL"
             self.order_dict["close_action"] = "BUY"
