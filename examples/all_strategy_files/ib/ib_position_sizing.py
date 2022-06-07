@@ -16,4 +16,5 @@ class IbPositionSizing():
         self.order_dict["risk_unit"] = abs(self.order_dict["entry"] - self.order_dict["sl"])
         position = PositionSizing(self.order_dict)
         quantity = position.options_quantity()
+
         return quantity

@@ -11,12 +11,7 @@ class TDData(Data):
     def __init__(self):
         pass
 
-    def get_options_data(self, options_dict, config_path):
-        config = configparser.ConfigParser()
-        config.read(config_path)
-        tda_api = config['TDA_API']
-        api_key = tda_api["api_key"]
-
+    def get_options_data(self, options_dict, api_key):
         from_date = datetime.date.today()
         to_date = from_date + datetime.timedelta(days=options_dict["days_forward"])
 
@@ -54,6 +49,7 @@ class TDData(Data):
                             'expirationDate': data["expirationDate"],
                             'daysToExpiration': data["daysToExpiration"],
                             'call': data["putCall"],
+                            'call_symbol': data["symbol"],
                             'call_bid': data["bid"],
                             'call_ask': data["ask"],
                             'call_last': data["last"],
@@ -102,6 +98,7 @@ class TDData(Data):
                             'expirationDate': data["expirationDate"],
                             'daysToExpiration': data["daysToExpiration"],
                             'put': data["putCall"],
+                            'put_symbol': data["symbol"],
                             'put_bid': data["bid"],
                             'put_ask': data["ask"],
                             'put_last': data["last"],
