@@ -54,19 +54,13 @@ class IBORB(Strategy):
 
         # If we are trading options, then overwrite the entry/sl/tp parameters taking into consideration whether we are buying/selling options
         if self.order_dict["sec_type"] == "OPT":
-            self.order_dict["stock_entry"] = self.order_dict["entry"] # Equating to temporary variable
-            self.order_dict["stock_sl"] = self.order_dict["sl"]
-
             self.order_dict["entry"] = self.order_dict["ask"]
-            self.order_dict["sl"] = 0
-
-
-        #     if self.order_dict["option_action"] == "BUY":
-        #         self.order_dict["sl"] = self.order_dict["entry"] * 0.90
-        #         self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
-        #     if self.order_dict["option_action"] == "SELL":
-        #         self.order_dict["tp1"] = self.order_dict["entry"] * 0.90
-        #         self.order_dict["sl"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "BUY":
+                self.order_dict["sl"] = self.order_dict["entry"] * 0.90
+                self.order_dict["tp1"] = self.order_dict["entry"] * 1.20
+            if self.order_dict["option_action"] == "SELL":
+                self.order_dict["tp1"] = self.order_dict["entry"] * 0.90
+                self.order_dict["sl"] = self.order_dict["entry"] * 1.20
 
         # IB Position Sizing Class
         ib_pos_size = IbPositionSizing(self.order_dict)
@@ -75,9 +69,6 @@ class IBORB(Strategy):
         if self.order_dict["sec_type"] == "OPT":
             quantity = ib_pos_size.get_options_quantity()
         self.order_dict["quantity"] = quantity
-
-        self.order_dict["entry"] = self.order_dict["stock_entry"]  #Putting back the right values from temporary variables
-        self.order_dict["sl"] = self.order_dict["stock_sl"]
 
     def start(self):
         # KEEP THIS HERE, SINCE THIS MIGHT BE DIFFERENT FOR EACH STRATEGY!!!!
@@ -92,7 +83,7 @@ class IBORB(Strategy):
     def send_orders(self):
         # IB Send Orders Class
         send_order = IbSendOrders(self.order_dict, self.dashboard_dict[1])
-        config.ib_order_id = send_order.send_underlying_mkt_order()
+        config.ib_order_id = send_order.send_lmt_stp_order()
 
     def after_send_orders(self):
         data_list = []
@@ -142,5 +133,3 @@ class IBORB(Strategy):
                     if self.order_dict["quantity"] > 0:
                         self.send_orders()
                         self.after_send_orders()
-
-                    print("QUANTITY: :", self.order_dict["quantity"])
