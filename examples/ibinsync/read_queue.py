@@ -12,7 +12,7 @@ import ib_insync.order
 from ib_insync import *
 
 # ib_orb_queue = asyncio.Queue()
-broker_2 = None
+
 
 async def run_ib_orb(ib_orb_queue):
     print("RUNNING ONLY ONCE!!!!!!!!!!!!!!!!")
@@ -47,12 +47,12 @@ async def run_ib_orb(ib_orb_queue):
             exchange = config.contract["exchange"]
             tda_api = config.tda["api"]
 
-            global broker_2
-            if (broker_2 == None) or (not broker_2.isConnected()):
-                broker_2 = IB()
-                await broker_2.connectAsync('127.0.0.1', 7497, clientId=1)
+            # global broker_2
+            # if (broker_2 == None) or (not broker_2.isConnected()):
+            #     broker_2 = IB()
+            #     await broker_2.connectAsync('127.0.0.1', 7497, clientId=1)
 
-            order_dict = {"broker": broker_2,
+            order_dict = {
                           "order_id": config.ib_order_id,
                           "ticker": webhook_message.ticker,
                           "primary_exchange": webhook_message.exchange,

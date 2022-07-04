@@ -1,7 +1,7 @@
 import time
 
 import ib_insync.order
-from ib_insync import *
+# from ib_insync import *
 import asyncio
 from datetime import datetime, timedelta
 from examples.all_strategy_files.ib.ib_check_order_positions import IbCheckOrderPositions
@@ -9,10 +9,20 @@ from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
 from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from examples.all_strategy_files.ib.ib_get_action import IbGetAction
 from examples.all_strategy_files.ib.ib_filter_options import IbFilterOptions
+from big_algo_framework.brokers.ib import IB
+
+broker_2 = None
 
 async def run_ibinsync(order_dict):
     ticker = order_dict["ticker"]
-    ib = order_dict["broker"]
+
+    global broker_2
+    if(broker_2 == None) or (not broker_2.isConnected()):
+        broker_2 = IB()
+        await broker_2.init_client(broker_2)
+        await broker_2.connectAsync('127.0.0.1', 7497, clientId=1)
+
+    ib = broker_2
 
     x = await ib.accountSummaryAsync()
     for acc in x:
@@ -51,27 +61,26 @@ async def run_ibinsync(order_dict):
         order_dict["quantity"] = quantity
 
         # Contract
-        stock_contract = Stock(symbol=ticker,
-                               currency='USD',
-                               exchange='SMART',
-                               primaryExchange=order_dict["primary_exchange"])
-        await ib.qualifyContractsAsync(stock_contract)
+        stock_contract = await ib.get_stock_contract(order_dict)
+        # await ib.qualifyContractsAsync(stock_contract)
 
-        option_contract = Option(symbol=ticker,
-                                 currency='USD',
-                                 exchange='SMART',
-                                 lastTradeDateOrContractMonth=order_dict["lastTradeDateOrContractMonth"],
-                                 strike=order_dict["strike"],
-                                 right=order_dict["right"],
-                                 multiplier=order_dict["multiplier"],
-                                 )
-        await ib.qualifyContractsAsync(option_contract)
+        # option_contract = Option(symbol=ticker,
+        #                          currency='USD',
+        #                          exchange='SMART',
+        #                          lastTradeDateOrContractMonth=order_dict["lastTradeDateOrContractMonth"],
+        #                          strike=order_dict["strike"],
+        #                          right=order_dict["right"],
+        #                          multiplier=order_dict["multiplier"],
+        #                          )
+        # await ib.qualifyContractsAsync(option_contract)
+
+        option_contract = await ib.get_options_contract(order_dict)
 
         # Prepare Orders
         x = True if order_dict["direction"] == "Bullish" else False
         y = False if order_dict["direction"] == "Bullish" else True
 
-        entry_order = MarketOrder(order_dict["open_action"], order_dict["quantity"], tif="GTD", goodTillDate= (order_dict["gtd"] + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'), transmit=False)
+        entry_order = await ib.get_market_order(order_dict["open_action"], order_dict["quantity"], "", "GTD", (order_dict["gtd"] + timedelta(minutes=-30)), False)
         p_cond = ib_insync.order.PriceCondition()
         p_cond.conId = stock_contract.conId
         p_cond.exch = "SMART"
@@ -81,7 +90,7 @@ async def run_ibinsync(order_dict):
         entry_order.conditions = [p_cond]
         entry_trade = ib.placeOrder(option_contract, entry_order)
 
-        sl_order = MarketOrder(order_dict["close_action"], order_dict["quantity"], parentId=entry_trade.order.orderId, transmit=False)
+        sl_order = await ib.get_market_order(order_dict["close_action"], order_dict["quantity"], entry_trade.order.orderId, "", "", False)
         p_cond = ib_insync.order.PriceCondition()
         p_cond.conId = stock_contract.conId
         p_cond.exch = "SMART"
@@ -91,7 +100,7 @@ async def run_ibinsync(order_dict):
         sl_order.conditions = [p_cond]
         sl_trade = ib.placeOrder(option_contract, sl_order)
 
-        tp_order = MarketOrder(order_dict["close_action"], order_dict["quantity"], parentId=entry_trade.order.orderId, transmit=True)
+        tp_order = await ib.get_market_order(order_dict["close_action"], order_dict["quantity"], entry_trade.order.orderId, "", "",  transmit=True)
         p_cond = ib_insync.order.PriceCondition()
         p_cond.conId = stock_contract.conId
         p_cond.exch = "SMART"
