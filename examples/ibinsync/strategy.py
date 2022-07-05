@@ -62,18 +62,6 @@ async def run_ibinsync(order_dict):
 
         # Contract
         stock_contract = await ib.get_stock_contract(order_dict)
-        # await ib.qualifyContractsAsync(stock_contract)
-
-        # option_contract = Option(symbol=ticker,
-        #                          currency='USD',
-        #                          exchange='SMART',
-        #                          lastTradeDateOrContractMonth=order_dict["lastTradeDateOrContractMonth"],
-        #                          strike=order_dict["strike"],
-        #                          right=order_dict["right"],
-        #                          multiplier=order_dict["multiplier"],
-        #                          )
-        # await ib.qualifyContractsAsync(option_contract)
-
         option_contract = await ib.get_options_contract(order_dict)
 
         # Prepare Orders
