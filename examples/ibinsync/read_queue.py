@@ -7,7 +7,7 @@ import time
 # from big_algo_framework.brokers.ib import IB
 from big_algo_framework.big.create_db import create_db
 from examples.ib_orb import config
-from examples.ibinsync.strategy import run_ibinsync
+from examples.ibinsync.strategy import IBORB
 import ib_insync.order
 from ib_insync import *
 
@@ -87,8 +87,8 @@ async def run_ib_orb(ib_orb_queue):
                           }
 
             print(datetime.datetime.now(), ": ", order_dict["ticker"])
-            x = await run_ibinsync(order_dict)
-            # x.execute()
+            x = IBORB(order_dict)
+            await x.execute()
 
         except Exception as exc:
             traceback.print_exc()
@@ -101,10 +101,3 @@ async def run_ib_orb(ib_orb_queue):
             }
 
         ib_orb_queue.task_done()
-
-# ib_orb_thread = threading.Thread(target=run_ib_orb, daemon=True)
-# ib_orb_thread.start()
-
-# CAN DELETE THIS!!!
-if __name__ == "__main__":
-    asyncio.run(run_ib_orb())

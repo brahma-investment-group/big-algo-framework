@@ -7,12 +7,6 @@ import time
 import threading
 from sqlalchemy import text
 import pandas as pd
-from ibapi.order import Order
-from ibapi.client import EClient
-from ibapi.wrapper import EWrapper
-from ibapi.contract import Contract
-from ibapi.order_condition import PriceCondition
-from ibapi.account_summary_tags import AccountSummaryTags
 
 class IB(Broker, ib_insync.IB):
     def __init__(self):
@@ -21,13 +15,6 @@ class IB(Broker, ib_insync.IB):
 
 
     # # Authentication
-    async def init_client(self, broker):
-        if (broker == None) or (not broker.isConnected()):
-            broker = ib_insync.IB()
-            # await broker.connectAsync('127.0.0.1', 7497, clientId=1)
-
-            self.broker = broker
-
 
     def connect_broker(self, broker, ip_address, port, ib_client):
         pass
@@ -38,7 +25,7 @@ class IB(Broker, ib_insync.IB):
                                currency=order_dict["currency"],
                                exchange=order_dict["exchange"],
                                primaryExchange=order_dict["primary_exchange"])
-        x = self.broker.qualifyContractsAsync(stock_contract)
+        x = await order_dict["broker"].qualifyContractsAsync(stock_contract)
         return x
 
     async def get_options_contract(self, order_dict):
@@ -50,7 +37,7 @@ class IB(Broker, ib_insync.IB):
                                  right=order_dict["right"],
                                  multiplier=order_dict["multiplier"],
                                  )
-        return self.broker.qualifyContractsAsync(option_contract)
+        return await order_dict["broker"].qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
     async def get_market_order(self, action, quantity, parent_id, tif, gtd, transmit):
@@ -59,7 +46,7 @@ class IB(Broker, ib_insync.IB):
             totalQuantity=quantity,
             parentId=parent_id,
             tif=tif,
-            goodTillDate=gtd.strftime('%Y%m%d %H:%M:%S'),
+            goodTillDate=gtd,
             transmit=transmit)
 
     def get_stop_limit_order(self, order_dict, digits=2):

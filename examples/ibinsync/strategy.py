@@ -4,101 +4,134 @@ import ib_insync.order
 # from ib_insync import *
 import asyncio
 from datetime import datetime, timedelta
-from examples.all_strategy_files.ib.ib_check_order_positions import IbCheckOrderPositions
+# from examples.all_strategy_files.ib.ib_check_order_positions import IbCheckOrderPositions
 from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
-from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
+# from examples.all_strategy_files.ib.ib_send_orders import IbSendOrders
 from examples.all_strategy_files.ib.ib_get_action import IbGetAction
 from examples.all_strategy_files.ib.ib_filter_options import IbFilterOptions
 from big_algo_framework.brokers.ib import IB
+from big_algo_framework.strategies.abstract_strategy import *
 
 broker_2 = None
 
-async def run_ibinsync(order_dict):
-    ticker = order_dict["ticker"]
+class IBORB(Strategy):
+    def __init__(self, order_dict):
+        super().__init__()
+        self.is_position = True
+        self.is_order = True
+        self.order_dict = order_dict.copy()
 
-    global broker_2
-    if(broker_2 == None) or (not broker_2.isConnected()):
-        broker_2 = IB()
-        await broker_2.init_client(broker_2)
-        await broker_2.connectAsync('127.0.0.1', 7497, clientId=1)
+    async def connect_broker(self):
+        global broker_2
+        if(broker_2 == None) or (not broker_2.isConnected()):
+            broker_2 = IB()
+            # await broker_2.init_client(broker_2)
+            await broker_2.connectAsync('127.0.0.1', 7497, clientId=1)
 
-    ib = broker_2
+        self.broker = broker_2
+        self.order_dict["broker"] = broker_2
 
-    x = await ib.accountSummaryAsync()
-    for acc in x:
-        if acc.tag == "AvailableFunds":
-            order_dict["funds"] = acc.value
+        x = await self.broker.accountSummaryAsync()
+        for acc in x:
+            if acc.tag == "AvailableFunds":
+                self.order_dict["funds"] = acc.value
 
-    orders_list = []
-    pos_list = []
+        self.orders_list = []
+        self.pos_list = []
 
-    for trades in ib.trades():
-        if trades.orderStatus.status == "PreSubmitted":
-            orders_list.append(trades.contract.symbol)
+    async def check_open_orders(self):
+        for trades in self.broker.trades():
+            if trades.orderStatus.status == "PreSubmitted":
+                self.orders_list.append(trades.contract.symbol)
 
-    for pos in await ib.reqPositionsAsync():
-        if pos.position != 0:
-            pos_list.append(pos.contract.symbol)
+        if self.order_dict["ticker"] not in self.orders_list:
+            self.is_order = False
 
-    if (ticker not in orders_list) and (ticker not in pos_list):
-        order_dict["gtd"] = datetime.fromtimestamp(order_dict["mkt_close_time"] / 1000)
+    async def check_positions(self):
+        for pos in await self.broker.reqPositionsAsync():
+            if pos.position != 0:
+                self.pos_list.append(pos.contract.symbol)
+
+        if self.order_dict["ticker"] not in self.pos_list:
+            self.is_position = False
+
+    async def before_send_orders(self):
+        self.order_dict["gtd"] = datetime.fromtimestamp(self.order_dict["mkt_close_time"] / 1000)
 
         # FILTER OPTIONS
-        action = IbGetAction(order_dict)
-        filter = IbFilterOptions(order_dict)
+        action = IbGetAction(self.order_dict)
+        filter = IbFilterOptions(self.order_dict)
         filter.filter_options()
         action.get_options_action()
 
-        order_dict["stock_entry"] = order_dict["entry"]
-        order_dict["stock_sl"] = order_dict["sl"]
+        self.order_dict["stock_entry"] = self.order_dict["entry"]
+        self.order_dict["stock_sl"] = self.order_dict["sl"]
 
-        order_dict["entry"] = order_dict["ask"]
-        order_dict["sl"] = 0
+        self.order_dict["entry"] = self.order_dict["ask"]
+        self.order_dict["sl"] = 0
 
         # IB Position Sizing Class
-        ib_pos_size = IbPositionSizing(order_dict)
+        ib_pos_size = IbPositionSizing(self.order_dict)
         quantity = ib_pos_size.get_options_quantity()
-        order_dict["quantity"] = quantity
+        self.order_dict["quantity"] = quantity
 
         # Contract
-        stock_contract = await ib.get_stock_contract(order_dict)
-        option_contract = await ib.get_options_contract(order_dict)
+        self.stock_contract = await self.broker.get_stock_contract(self.order_dict)
+        self.option_contract = await self.broker.get_options_contract(self.order_dict)
 
         # Prepare Orders
-        x = True if order_dict["direction"] == "Bullish" else False
-        y = False if order_dict["direction"] == "Bullish" else True
+        self.x = True if self.order_dict["direction"] == "Bullish" else False
+        self.y = False if self.order_dict["direction"] == "Bullish" else True
 
-        entry_order = await ib.get_market_order(order_dict["open_action"], order_dict["quantity"], "", "GTD", (order_dict["gtd"] + timedelta(minutes=-30)), False)
+    async def send_orders(self):
+        entry_order = await self.broker.get_market_order(self.order_dict["open_action"], self.order_dict["quantity"], "", "GTD", (self.order_dict["gtd"] + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'), False)
         p_cond = ib_insync.order.PriceCondition()
-        p_cond.conId = stock_contract.conId
+        p_cond.conId = self.stock_contract[0].conId
         p_cond.exch = "SMART"
-        p_cond.isMore = y
-        p_cond.price = order_dict["stock_entry"]
+        p_cond.isMore = self.y
+        p_cond.price = self.order_dict["stock_entry"]
         p_cond.conjunction = 'o'
         entry_order.conditions = [p_cond]
-        entry_trade = ib.placeOrder(option_contract, entry_order)
+        entry_trade = self.broker.placeOrder(self.option_contract[0], entry_order)
 
-        sl_order = await ib.get_market_order(order_dict["close_action"], order_dict["quantity"], entry_trade.order.orderId, "", "", False)
+        sl_order = await self.broker.get_market_order(self.order_dict["close_action"], self.order_dict["quantity"], entry_trade.order.orderId, "", "", False)
         p_cond = ib_insync.order.PriceCondition()
-        p_cond.conId = stock_contract.conId
+        p_cond.conId = self.stock_contract[0].conId
         p_cond.exch = "SMART"
-        p_cond.isMore = y
-        p_cond.price = order_dict["stock_sl"]
+        p_cond.isMore = self.y
+        p_cond.price = self.order_dict["stock_sl"]
         p_cond.conjunction = 'o'
         sl_order.conditions = [p_cond]
-        sl_trade = ib.placeOrder(option_contract, sl_order)
+        sl_trade = self.broker.placeOrder(self.option_contract[0], sl_order)
 
-        tp_order = await ib.get_market_order(order_dict["close_action"], order_dict["quantity"], entry_trade.order.orderId, "", "",  transmit=True)
+        tp_order = await self.broker.get_market_order(self.order_dict["close_action"], self.order_dict["quantity"], entry_trade.order.orderId, "", "",  transmit=True)
         p_cond = ib_insync.order.PriceCondition()
-        p_cond.conId = stock_contract.conId
+        p_cond.conId = self.stock_contract[0].conId
         p_cond.exch = "SMART"
-        p_cond.isMore = x
-        p_cond.price = order_dict["tp1"]
+        p_cond.isMore = self.x
+        p_cond.price = self.order_dict["tp1"]
         p_cond.conjunction = 'o'
         t_cond = ib_insync.order.TimeCondition()
-        t_cond.time = (order_dict["gtd"] + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S')
+        t_cond.time = (self.order_dict["gtd"] + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S')
         tp_order.conditions = [p_cond, t_cond]
-        tp_trade = ib.placeOrder(option_contract, tp_order)
+        tp_trade = self.broker.placeOrder(self.option_contract[0], tp_order)
+
+    async def start(self):
+        await self.connect_broker()
+
+    async def execute(self):
+        await self.start()
+
+        if self.order_dict["is_close"] == 0:
+            await self.check_positions()
+            if not self.is_position:
+                await self.check_open_orders()
+                if not self.is_order:
+                    await self.before_send_orders()
+
+                    if self.order_dict["quantity"] > 0:
+                        await self.send_orders()
+                        self.after_send_orders()
 
 
     # TRADE CLASS OUTPUT!!!!
