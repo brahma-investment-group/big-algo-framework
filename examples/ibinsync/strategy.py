@@ -1,11 +1,9 @@
 from big_algo_framework.strategies.abstract_strategy import *
 from big_algo_framework.brokers.ib import IB
-from examples.all_strategy_files.ib.ib_position_sizing import IbPositionSizing
-from examples.all_strategy_files.ib.ib_get_action import IbGetAction
-# from examples.all_strategy_files.ib.ib_filter_options import IbFilterOptions
-from datetime import datetime, timedelta
-from big_algo_framework.big.options import filter_option_contract
 from big_algo_framework.data.td import TDData
+from big_algo_framework.big.options import filter_option_contract
+from big_algo_framework.big.position_sizing import PositionSizing
+from datetime import datetime, timedelta
 
 broker = None
 
@@ -32,6 +30,8 @@ class IBORB(Strategy):
             if acc.tag == "AvailableFunds":
                 self.order_dict["funds"] = acc.value
 
+        print("CONNECT BROKER")
+
     async def check_open_orders(self):
         for trades in self.broker.trades():
             if trades.orderStatus.status == "PreSubmitted":
@@ -40,21 +40,26 @@ class IBORB(Strategy):
         if self.order_dict["ticker"] not in self.orders_list:
             self.is_order = False
 
-    async def check_positions(self):
-        for pos in await self.broker.reqPositionsAsync():
-            if pos.position != 0:
-                self.pos_list.append(pos.contract.symbol)
+        print("CHECK ORDERS")
 
-        if self.order_dict["ticker"] not in self.pos_list:
-            self.is_position = False
+    async def check_positions(self):
+        pass
+        # print("CHECK POSITIONS BEFORE")
+        #
+        # for pos in await self.broker.reqPositionsAsync():
+        #     if pos.position != 0:
+        #         self.pos_list.append(pos.contract.symbol)
+        #
+        # if self.order_dict["ticker"] not in self.pos_list:
+        #     self.is_position = False
+        #
+        # print("CHECK POSITIONS")
+
 
     async def before_send_orders(self):
         self.order_dict["gtd"] = datetime.fromtimestamp(self.order_dict["mkt_close_time"] / 1000)
 
         # FILTER OPTIONS
-        # filter = IbFilterOptions(self.order_dict)
-        # options_df = filter.filter_options()
-
         data = TDData()
         contract_type = ""
 
@@ -88,8 +93,9 @@ class IBORB(Strategy):
         self.order_dict["symbol"] = option_contract["symbol"]
         self.order_dict["multiplier"] = option_contract["multiplier"]
 
-        action = IbGetAction(self.order_dict)
-        action.get_options_action()
+        # ACTION
+        self.order_dict["open_action"] = self.order_dict["option_action"]
+        self.order_dict["close_action"] = "SELL" if self.order_dict["open_action"] == "BUY" else "BUY"
 
         self.order_dict["stock_entry"] = self.order_dict["entry"]
         self.order_dict["stock_sl"] = self.order_dict["sl"]
@@ -97,10 +103,15 @@ class IBORB(Strategy):
         self.order_dict["entry"] = self.order_dict["ask"]
         self.order_dict["sl"] = 0
 
-        # IB Position Sizing Class
-        ib_pos_size = IbPositionSizing(self.order_dict)
-        quantity = ib_pos_size.get_options_quantity()
-        self.order_dict["quantity"] = quantity
+        # Position Sizing
+        self.order_dict["risk_unit"] = abs(self.order_dict["entry"] - self.order_dict["sl"])
+        position = PositionSizing(self.order_dict["available_capital"],
+                                  self.order_dict["total_risk"],
+                                  self.order_dict["total_risk_units"],
+                                  self.order_dict["risk_unit"],
+                                  self.order_dict["max_position_percent"],
+                                  self.order_dict["entry"])
+        self.order_dict["quantity"] = position.options_quantity(self.order_dict["multiplier"])
 
         # Contract
         self.stock_contract = await self.broker.get_stock_contract(self.order_dict["broker"], self.order_dict["ticker"],

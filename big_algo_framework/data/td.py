@@ -1,8 +1,6 @@
 from big_algo_framework.data.abstract_data import Data
-import configparser
 import datetime
 import pandas as pd
-import numpy as np
 import requests
 import time
 import json

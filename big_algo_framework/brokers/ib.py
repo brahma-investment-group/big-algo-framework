@@ -11,7 +11,6 @@ class IB(Broker, ib_insync.IB):
     # Asset
     async def get_stock_contract(self, broker, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
         stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
-
         return await broker.qualifyContractsAsync(stock_contract)
 
     async def get_options_contract(self, broker, symbol: str = '', lastTradeDateOrContractMonth: str = '', strike: float = 0.0,
@@ -19,7 +18,6 @@ class IB(Broker, ib_insync.IB):
         option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=lastTradeDateOrContractMonth,
                                            strike=strike, right=right, exchange=exchange, multiplier=multiplier,
                                            currency=currency)
-
         return await broker.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
@@ -32,13 +30,13 @@ class IB(Broker, ib_insync.IB):
             goodTillDate=gtd,
             transmit=transmit)
 
-    def get_stop_limit_order(self, order_dict, digits=2):
+    def get_stop_limit_order(self, digits=2):
         pass
 
-    def get_limit_order(self, order_dict, digits=2):
+    def get_limit_order(self, digits=2):
         pass
 
-    def get_stop_order(self, order_dict, digits=2):
+    def get_stop_order(self, digits=2):
         pass
 
     def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
@@ -76,27 +74,27 @@ class IB(Broker, ib_insync.IB):
         return self.placeOrder(contract, order)
 
     # Get Orders/Positions
-    def get_order_by_ticker(self, order_dict):
+    def get_order_by_ticker(self):
         pass
 
-    def get_all_orders(self, order_dict):
+    def get_all_orders(self):
         pass
 
-    def get_position_by_ticker(self, order_dict):
+    def get_position_by_ticker(self):
         pass
 
-    def get_all_positions(self, order_dict):
+    def get_all_positions(self):
         pass
 
     # Cancel Orders/Close Positions
-    def cancel_order(self, order_dict, order_id):
+    def cancel_order(self, order_id):
         pass
 
-    def cancel_all_orders(self, order_dict):
+    def cancel_all_orders(self):
         pass
 
-    def close_position(self, pos_order_dict, underlying=False):
+    def close_position(self, underlying=False):
         pass
 
-    def close_all_positions(self, order_dict, underlying=False):
+    def close_all_positions(self, underlying=False):
         pass
