@@ -12,6 +12,5 @@ class IbGetAction():
             self.order_dict["close_action"] = "BUY"
 
     def get_options_action(self):
-        self.order_dict["primary_exchange"] = ""
         self.order_dict["open_action"] = self.order_dict["option_action"]
         self.order_dict["close_action"] = "SELL" if self.order_dict["open_action"] == "BUY" else "BUY"

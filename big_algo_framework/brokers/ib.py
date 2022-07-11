@@ -1,43 +1,26 @@
-import ib_insync
-import asyncio
-
 from big_algo_framework.brokers.abstract_broker import Broker
-from big_algo_framework.big.helper import truncate
-import time
-import threading
-from sqlalchemy import text
-import pandas as pd
+import ib_insync
 
 class IB(Broker, ib_insync.IB):
     def __init__(self):
         ib_insync.IB.__init__(self)
 
-
-
-    # # Authentication
-
-    def connect_broker(self, broker, ip_address, port, ib_client):
+    def connect_broker(self):
         pass
 
     # Asset
-    async def get_stock_contract(self, order_dict):
-        stock_contract = ib_insync.Stock(symbol=order_dict["ticker"],
-                               currency=order_dict["currency"],
-                               exchange=order_dict["exchange"],
-                               primaryExchange=order_dict["primary_exchange"])
-        x = await order_dict["broker"].qualifyContractsAsync(stock_contract)
-        return x
+    async def get_stock_contract(self, broker, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
+        stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
 
-    async def get_options_contract(self, order_dict):
-        option_contract = ib_insync.Option(symbol=order_dict["ticker"],
-                                 currency=order_dict["currency"],
-                                 exchange=order_dict["exchange"],
-                                 lastTradeDateOrContractMonth=order_dict["lastTradeDateOrContractMonth"],
-                                 strike=order_dict["strike"],
-                                 right=order_dict["right"],
-                                 multiplier=order_dict["multiplier"],
-                                 )
-        return await order_dict["broker"].qualifyContractsAsync(option_contract)
+        return await broker.qualifyContractsAsync(stock_contract)
+
+    async def get_options_contract(self, broker, symbol: str = '', lastTradeDateOrContractMonth: str = '', strike: float = 0.0,
+                                   right: str = '', exchange: str = '', multiplier: str = '', currency: str = ''):
+        option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=lastTradeDateOrContractMonth,
+                                           strike=strike, right=right, exchange=exchange, multiplier=multiplier,
+                                           currency=currency)
+
+        return await broker.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
     async def get_market_order(self, action, quantity, parent_id, tif, gtd, transmit):
@@ -51,7 +34,6 @@ class IB(Broker, ib_insync.IB):
 
     def get_stop_limit_order(self, order_dict, digits=2):
         pass
-
 
     def get_limit_order(self, order_dict, digits=2):
         pass
@@ -68,8 +50,30 @@ class IB(Broker, ib_insync.IB):
     def get_oco_order(self, orders, oca_group_name, oca_group_type):
         pass
 
-    def send_order(self, order_id, contract, order):
-        pass
+    def get_price_condition(self, cond_type: int = 1, conjunction: str = 'a', is_more: bool = True, price: float = 0.0,
+                            contract_id: int = 0, exchange: str = '', trigger_method: int = 0):
+        price_cond = ib_insync.order.PriceCondition()
+        price_cond.condType = cond_type
+        price_cond.conjunction = conjunction
+        price_cond.isMore = is_more
+        price_cond.price = price
+        price_cond.conId = contract_id
+        price_cond.exch = exchange
+        price_cond.triggerMethod = trigger_method
+
+        return price_cond
+
+    def get_time_condition(self, cond_type: int = 3, conjunction: str = 'a', is_more: bool = True, time: str = ''):
+        time_cond = ib_insync.order.TimeCondition()
+        time_cond.condType = cond_type
+        time_cond.conjunction = conjunction
+        time_cond.isMore = is_more
+        time_cond.time = time
+
+        return time_cond
+
+    async def send_order(self, contract, order):
+        return self.placeOrder(contract, order)
 
     # Get Orders/Positions
     def get_order_by_ticker(self, order_dict):
