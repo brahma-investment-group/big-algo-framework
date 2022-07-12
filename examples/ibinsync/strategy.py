@@ -14,137 +14,156 @@ class IBORB(Strategy):
         self.is_order = True
         self.orders_list = []
         self.pos_list = []
-        self.order_dict = order_dict.copy()
+
+        self.ip_address = order_dict["ip_address"]
+        self.port = order_dict["port"]
+        self.ib_client = order_dict["ib_client"]
+        self.order_id = order_dict["order_id"]
+        self.ticker = order_dict["ticker"]
+        self.primary_exchange = order_dict["primary_exchange"]
+        self.time_frame = order_dict["time_frame"]
+        self.entry_time = order_dict["entry_time"]
+        self.entry = order_dict["entry"]
+        self.sl = order_dict["sl"]
+        self.tp1 = order_dict["tp1"]
+        self.tp2 = order_dict["tp2"]
+        self.risk = order_dict["risk"]
+        self.direction = order_dict["direction"]
+        self.is_close = order_dict["is_close"]
+        self.mkt_close_time = order_dict["mkt_close_time"]
+        self.sec_type = order_dict["sec_type"]
+        self.option_action = order_dict["option_action"]
+        self.option_range = order_dict["option_range"]
+        self.option_strikes = order_dict["option_strikes"]
+        self.option_expiry_days = order_dict["option_expiry_days"]
+        self.currency = order_dict["currency"]
+        self.exchange = order_dict["exchange"]
+        self.lastTradeDateOrContractMonth = order_dict["lastTradeDateOrContractMonth"]
+        self.strike = order_dict["strike"]
+        self.right = order_dict["right"]
+        self.multiplier = order_dict["multiplier"]
+        self.ask_price = order_dict["ask_price"]
+        self.account_no = order_dict["account_no"]
+        self.funds = order_dict["funds"]
+        self.total_risk = order_dict["total_risk"]
+        self.total_risk_units = order_dict["total_risk_units"]
+        self.max_position_percent = order_dict["max_position_percent"]
+        self.tda_api = order_dict["tda_api"]
 
     async def connect_broker(self):
         global broker
         if(broker == None) or (not broker.isConnected()):
             broker = IB()
-            await broker.connectAsync(self.order_dict["ip_address"], self.order_dict["port"], self.order_dict["ib_client"])
-
+            await broker.connectAsync(self.ip_address, self.port, self.ib_client)
         self.broker = broker
-        self.order_dict["broker"] = broker
 
         x = await self.broker.accountSummaryAsync()
         for acc in x:
             if acc.tag == "AvailableFunds":
-                self.order_dict["funds"] = acc.value
-
-        print("CONNECT BROKER")
+                self.available_capital = float(acc.value)
 
     async def check_open_orders(self):
         for trades in self.broker.trades():
             if trades.orderStatus.status == "PreSubmitted":
                 self.orders_list.append(trades.contract.symbol)
 
-        if self.order_dict["ticker"] not in self.orders_list:
+        if self.ticker not in self.orders_list:
             self.is_order = False
 
-        print("CHECK ORDERS")
-
     async def check_positions(self):
-        pass
-        # print("CHECK POSITIONS BEFORE")
-        #
-        # for pos in await self.broker.reqPositionsAsync():
-        #     if pos.position != 0:
-        #         self.pos_list.append(pos.contract.symbol)
-        #
-        # if self.order_dict["ticker"] not in self.pos_list:
-        #     self.is_position = False
-        #
-        # print("CHECK POSITIONS")
+        for pos in await self.broker.reqPositionsAsync():
+            if pos.position != 0:
+                self.pos_list.append(pos.contract.symbol)
 
+        if self.ticker not in self.pos_list:
+            self.is_position = False
 
     async def before_send_orders(self):
-        self.order_dict["gtd"] = datetime.fromtimestamp(self.order_dict["mkt_close_time"] / 1000)
+        self.gtd = datetime.fromtimestamp(self.mkt_close_time / 1000)
 
         # FILTER OPTIONS
         data = TDData()
         contract_type = ""
 
-        if (self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "BUY") or \
-                (self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "SELL"):
+        if (self.direction == "Bullish" and self.option_action == "BUY") or \
+                (self.direction == "Bearish" and self.option_action == "SELL"):
             contract_type = "CALL"
 
-        elif (self.order_dict["direction"] == "Bullish" and self.order_dict["option_action"] == "SELL") or \
-                (self.order_dict["direction"] == "Bearish" and self.order_dict["option_action"] == "BUY"):
+        elif (self.direction == "Bullish" and self.option_action == "SELL") or \
+                (self.direction == "Bearish" and self.option_action == "BUY"):
             contract_type = "PUT"
 
-        options_df = data.get_options_data(symbol=self.order_dict["ticker"],
+        options_df = data.get_options_data(symbol=self.ticker,
                                            contract_type=contract_type,
-                                           range=self.order_dict["option_range"],
+                                           range=self.option_range,
                                            days_forward=10,
-                                           api_key=self.order_dict["tda_api"])
+                                           api_key=self.tda_api)
 
-        option_contract = filter_option_contract(direction=self.order_dict["direction"],
-                                                   open_action=self.order_dict["option_action"],
-                                                   option_range=self.order_dict["option_range"],
-                                                   option_strikes=self.order_dict["option_strikes"],
-                                                   stock_price=self.order_dict["entry"],
-                                                   option_expiry_days=self.order_dict["option_expiry_days"],
+        option_contract = filter_option_contract(direction=self.direction,
+                                                   open_action=self.option_action,
+                                                   option_range=self.option_range,
+                                                   option_strikes=self.option_strikes,
+                                                   stock_price=self.entry,
+                                                   option_expiry_days=self.option_expiry_days,
                                                    options_df=options_df)
 
-        self.order_dict["lastTradeDateOrContractMonth"] = option_contract["lastTradeDateOrContractMonth"]
-        self.order_dict["strike"] = option_contract["strike"]
-        self.order_dict["right"] = option_contract["right"]
-        self.order_dict["ask"] = option_contract["ask"]
-        self.order_dict["bid"] = option_contract["bid"]
-        self.order_dict["symbol"] = option_contract["symbol"]
-        self.order_dict["multiplier"] = option_contract["multiplier"]
+        self.lastTradeDateOrContractMonth = option_contract["lastTradeDateOrContractMonth"]
+        self.strike = option_contract["strike"]
+        self.right = option_contract["right"]
+        self.ask = option_contract["ask"]
+        self.bid = option_contract["bid"]
+        self.symbol = option_contract["symbol"]
+        self.multiplier = option_contract["multiplier"]
 
         # ACTION
-        self.order_dict["open_action"] = self.order_dict["option_action"]
-        self.order_dict["close_action"] = "SELL" if self.order_dict["open_action"] == "BUY" else "BUY"
+        self.open_action = self.option_action
+        self.close_action = "SELL" if self.open_action == "BUY" else "BUY"
 
-        self.order_dict["stock_entry"] = self.order_dict["entry"]
-        self.order_dict["stock_sl"] = self.order_dict["sl"]
+        self.stock_entry = self.entry
+        self.stock_sl = self.sl
 
-        self.order_dict["entry"] = self.order_dict["ask"]
-        self.order_dict["sl"] = 0
+        self.entry = self.ask
+        self.sl = 0
 
         # Position Sizing
-        self.order_dict["risk_unit"] = abs(self.order_dict["entry"] - self.order_dict["sl"])
-        position = PositionSizing(self.order_dict["available_capital"],
-                                  self.order_dict["total_risk"],
-                                  self.order_dict["total_risk_units"],
-                                  self.order_dict["risk_unit"],
-                                  self.order_dict["max_position_percent"],
-                                  self.order_dict["entry"])
-        self.order_dict["quantity"] = position.options_quantity(self.order_dict["multiplier"])
+        self.risk_unit = abs(self.entry - self.sl)
+        position = PositionSizing(self.available_capital,
+                                  self.total_risk,
+                                  self.total_risk_units,
+                                  self.risk_unit,
+                                  self.max_position_percent,
+                                  self.entry)
+        self.quantity = position.options_quantity(self.multiplier)
 
         # Contract
-        self.stock_contract = await self.broker.get_stock_contract(self.order_dict["broker"], self.order_dict["ticker"],
-                                                                   self.order_dict["exchange"], self.order_dict["currency"],
-                                                                   self.order_dict["primary_exchange"])
-        self.option_contract = await self.broker.get_options_contract(self.order_dict["broker"],
-                                                                      self.order_dict["ticker"],
-                                                                      self.order_dict["lastTradeDateOrContractMonth"],
-                                                                      self.order_dict["strike"],
-                                                                      self.order_dict["right"],
-                                                                      self.order_dict["exchange"],
-                                                                      self.order_dict["multiplier"],
-                                                                      self.order_dict["currency"],
-                                                                      )
+        self.stock_contract = await self.broker.get_stock_contract(self.broker, self.ticker, self.exchange, self.currency, self.primary_exchange)
+        self.option_contract = await self.broker.get_options_contract(self.broker,
+                                                                      self.ticker,
+                                                                      self.lastTradeDateOrContractMonth,
+                                                                      self.strike,
+                                                                      self.right,
+                                                                      self.exchange,
+                                                                      self.multiplier,
+                                                                      self.currency)
 
         # Prepare Orders
-        self.x = True if self.order_dict["direction"] == "Bullish" else False
-        self.y = False if self.order_dict["direction"] == "Bullish" else True
+        self.x = True if self.direction == "Bullish" else False
+        self.y = False if self.direction == "Bullish" else True
 
     async def send_orders(self):
-        entry_order = await self.broker.get_market_order(self.order_dict["open_action"], self.order_dict["quantity"], "", "GTD", (self.order_dict["gtd"] + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'), False)
-        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.y, price=self.order_dict["stock_entry"], contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
+        entry_order = await self.broker.get_market_order(self.open_action, self.quantity, "", "GTD", (self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'), False)
+        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.y, price=self.stock_entry, contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
         entry_order.conditions = [p_cond]
         entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
 
-        sl_order = await self.broker.get_market_order(self.order_dict["close_action"], self.order_dict["quantity"], entry_trade.order.orderId, "", "", False)
-        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.y, price=self.order_dict["stock_sl"], contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
+        sl_order = await self.broker.get_market_order(self.close_action, self.quantity, entry_trade.order.orderId, "", "", False)
+        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.y, price=self.stock_sl, contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
         sl_order.conditions = [p_cond]
         await self.broker.send_order(self.option_contract[0], sl_order)
 
-        tp_order = await self.broker.get_market_order(self.order_dict["close_action"], self.order_dict["quantity"], entry_trade.order.orderId, "", "",  transmit=True)
-        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.x, price=self.order_dict["tp1"], contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
-        t_cond = self.broker.get_time_condition(cond_type=3, conjunction='o', is_more=True, time=(self.order_dict["gtd"] + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S'))
+        tp_order = await self.broker.get_market_order(self.close_action, self.quantity, entry_trade.order.orderId, "", "",  transmit=True)
+        p_cond = self.broker.get_price_condition(cond_type=1, conjunction='o', is_more=self.x, price=self.tp1, contract_id=self.stock_contract[0].conId, exchange="SMART", trigger_method=0)
+        t_cond = self.broker.get_time_condition(cond_type=3, conjunction='o', is_more=True, time=(self.gtd + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S'))
         tp_order.conditions = [p_cond, t_cond]
         await self.broker.send_order(self.option_contract[0], tp_order)
 
@@ -154,14 +173,14 @@ class IBORB(Strategy):
     async def execute(self):
         await self.start()
 
-        if self.order_dict["is_close"] == 0:
+        if self.is_close == 0:
             await self.check_positions()
             if not self.is_position:
                 await self.check_open_orders()
                 if not self.is_order:
                     await self.before_send_orders()
 
-                    if self.order_dict["quantity"] > 0:
+                    if self.quantity > 0:
                         await self.send_orders()
                         self.after_send_orders()
 
