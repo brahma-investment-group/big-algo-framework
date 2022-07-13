@@ -21,14 +21,15 @@ class IB(Broker, ib_insync.IB):
         return await broker.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
-    async def get_market_order(self, action, quantity, parent_id, tif, gtd, transmit):
+    async def get_market_order(self, action, quantity, parent_id='', tif='', gtd='', transmit=True, **kwargs):
         return ib_insync.MarketOrder(
             action=action,
             totalQuantity=quantity,
             parentId=parent_id,
             tif=tif,
             goodTillDate=gtd,
-            transmit=transmit)
+            transmit=transmit,
+            **kwargs)
 
     def get_stop_limit_order(self, digits=2):
         pass
