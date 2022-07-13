@@ -155,6 +155,7 @@ class IBORB(Strategy):
                                                          quantity=self.quantity,
                                                          tif="GTD",
                                                          gtd=(self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'),
+                                                         account_no=self.account_no,
                                                          transmit=False)
         p_cond = self.broker.get_price_condition(cond_type=1,
                                                  conjunction='o',
@@ -169,6 +170,7 @@ class IBORB(Strategy):
         sl_order = await self.broker.get_market_order(action=self.close_action,
                                                       quantity=self.quantity,
                                                       parent_id=entry_trade.order.orderId,
+                                                      account_no=self.account_no,
                                                       transmit=False)
         p_cond = self.broker.get_price_condition(cond_type=1,
                                                  conjunction='o',
@@ -183,6 +185,7 @@ class IBORB(Strategy):
         tp_order = await self.broker.get_market_order(action=self.close_action,
                                                       quantity=self.quantity,
                                                       parent_id=entry_trade.order.orderId,
+                                                      account_no=self.account_no,
                                                       transmit=True)
         p_cond = self.broker.get_price_condition(cond_type=1,
                                                  conjunction='o',

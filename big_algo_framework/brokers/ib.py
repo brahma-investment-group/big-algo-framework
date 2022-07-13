@@ -21,24 +21,53 @@ class IB(Broker, ib_insync.IB):
         return await broker.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
-    async def get_market_order(self, action, quantity, parent_id='', tif='', gtd='', transmit=True, **kwargs):
-        return ib_insync.MarketOrder(
-            action=action,
-            totalQuantity=quantity,
-            parentId=parent_id,
-            tif=tif,
-            goodTillDate=gtd,
-            transmit=transmit,
-            **kwargs)
+    async def get_market_order(self, action, quantity, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+        return ib_insync.MarketOrder(action=action,
+                                     totalQuantity=quantity,
+                                     parentId=parent_id,
+                                     tif=tif,
+                                     goodTillDate=gtd,
+                                     goodAfterTime=gat,
+                                     account=account_no,
+                                     transmit=transmit,
+                                     **kwargs)
 
-    def get_stop_limit_order(self, digits=2):
-        pass
+    def get_stop_limit_order(self, action, quantity, limit_price, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+        return ib_insync.StopLimitOrder(action=action,
+                                        totalQuantity=quantity,
+                                        lmtPrice=limit_price,
+                                        stopPrice=stop_price,
+                                        parentId=parent_id,
+                                        tif=tif,
+                                        goodTillDate=gtd,
+                                        goodAfterTime=gat,
+                                        account=account_no,
+                                        transmit=transmit,
+                                        **kwargs)
 
-    def get_limit_order(self, digits=2):
-        pass
+    def get_limit_order(self, action, quantity, limit_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+        return ib_insync.LimitOrder(action=action,
+                                    totalQuantity=quantity,
+                                    lmtPrice=limit_price,
+                                    parentId=parent_id,
+                                    tif=tif,
+                                    goodTillDate=gtd,
+                                    goodAfterTime=gat,
+                                    account=account_no,
+                                    transmit=transmit,
+                                    **kwargs)
 
-    def get_stop_order(self, digits=2):
-        pass
+    def get_stop_order(self, action, quantity, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+        return ib_insync.StopOrder(action=action,
+                                   totalQuantity=quantity,
+                                   stopPrice=stop_price,
+                                   parentId=parent_id,
+                                   tif=tif,
+                                   goodTillDate=gtd,
+                                   goodAfterTime=gat,
+                                   account=account_no,
+                                   transmit=transmit,
+                                   **kwargs)
 
     def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
        pass
