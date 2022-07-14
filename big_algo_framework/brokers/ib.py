@@ -1,4 +1,5 @@
 from big_algo_framework.brokers.abstract_broker import Broker
+from big_algo_framework.big.helper import truncate
 import ib_insync
 
 class IB(Broker, ib_insync.IB):
@@ -32,11 +33,11 @@ class IB(Broker, ib_insync.IB):
                                      transmit=transmit,
                                      **kwargs)
 
-    def get_stop_limit_order(self, action, quantity, limit_price, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+    async def get_stop_limit_order(self, action, quantity, limit_price, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, digits=2, **kwargs):
         return ib_insync.StopLimitOrder(action=action,
                                         totalQuantity=quantity,
-                                        lmtPrice=limit_price,
-                                        stopPrice=stop_price,
+                                        lmtPrice=truncate(limit_price,digits),
+                                        stopPrice=truncate(stop_price, digits),
                                         parentId=parent_id,
                                         tif=tif,
                                         goodTillDate=gtd,
@@ -45,10 +46,10 @@ class IB(Broker, ib_insync.IB):
                                         transmit=transmit,
                                         **kwargs)
 
-    def get_limit_order(self, action, quantity, limit_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+    async def get_limit_order(self, action, quantity, limit_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, digits=2, **kwargs):
         return ib_insync.LimitOrder(action=action,
                                     totalQuantity=quantity,
-                                    lmtPrice=limit_price,
+                                    lmtPrice=truncate(limit_price,digits),
                                     parentId=parent_id,
                                     tif=tif,
                                     goodTillDate=gtd,
@@ -57,10 +58,10 @@ class IB(Broker, ib_insync.IB):
                                     transmit=transmit,
                                     **kwargs)
 
-    def get_stop_order(self, action, quantity, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
+    async def get_stop_order(self, action, quantity, stop_price, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, digits=2, **kwargs):
         return ib_insync.StopOrder(action=action,
                                    totalQuantity=quantity,
-                                   stopPrice=stop_price,
+                                   stopPrice=truncate(stop_price, digits),
                                    parentId=parent_id,
                                    tif=tif,
                                    goodTillDate=gtd,
@@ -69,16 +70,39 @@ class IB(Broker, ib_insync.IB):
                                    transmit=transmit,
                                    **kwargs)
 
-    def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
-       pass
+    async def get_trailing_stop_order(self, action, quantity, trail_type, trail_amount, trail_stop='', parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, digits=2, **kwargs):
+        if trail_stop != "":
+            trail_stop = truncate(trail_stop, digits)
 
-    def get_oto_order(self, orders):
+        if str.upper(trail_type) == "AMOUNT":
+            aux_price = truncate(trail_amount, digits)
+            trailing_percent = ""
+        elif str.upper(trail_type) == "PERCENTAGE":
+            trailing_percent = trail_amount
+            aux_price = ""
+
+        return ib_insync.Order(
+            orderType='TRAIL',
+            action=action,
+            totalQuantity=quantity,
+            trailStopPrice=trail_stop,
+            auxPrice=aux_price,
+            trailingPercent=trailing_percent,
+            parentId=parent_id,
+            tif=tif,
+            goodTillDate=gtd,
+            goodAfterTime=gat,
+            account=account_no,
+            transmit=transmit,
+            **kwargs)
+
+    async def get_oto_order(self, orders):
         pass
 
-    def get_oco_order(self, orders, oca_group_name, oca_group_type):
-        pass
+    async def get_oco_order(self, broker, orders, oca_group_name, oca_group_type):
+        return broker.oneCancelsAll(orders, oca_group_name, oca_group_type)
 
-    def get_price_condition(self, cond_type: int = 1, conjunction: str = 'a', is_more: bool = True, price: float = 0.0,
+    async def get_price_condition(self, cond_type: int = 1, conjunction: str = 'a', is_more: bool = True, price: float = 0.0,
                             contract_id: int = 0, exchange: str = '', trigger_method: int = 0):
         price_cond = ib_insync.order.PriceCondition()
         price_cond.condType = cond_type
@@ -91,7 +115,7 @@ class IB(Broker, ib_insync.IB):
 
         return price_cond
 
-    def get_time_condition(self, cond_type: int = 3, conjunction: str = 'a', is_more: bool = True, time: str = ''):
+    async def get_time_condition(self, cond_type: int = 3, conjunction: str = 'a', is_more: bool = True, time: str = ''):
         time_cond = ib_insync.order.TimeCondition()
         time_cond.condType = cond_type
         time_cond.conjunction = conjunction

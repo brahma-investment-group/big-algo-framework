@@ -151,55 +151,76 @@ class IBORB(Strategy):
         self.y = False if self.direction == "Bullish" else True
 
     async def send_orders(self):
-        entry_order = await self.broker.get_market_order(action=self.open_action,
-                                                         quantity=self.quantity,
-                                                         tif="GTD",
-                                                         gtd=(self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'),
-                                                         account_no=self.account_no,
-                                                         transmit=False)
-        p_cond = self.broker.get_price_condition(cond_type=1,
-                                                 conjunction='o',
-                                                 is_more=self.y,
-                                                 price=self.stock_entry,
-                                                 contract_id=self.stock_contract[0].conId,
-                                                 exchange="SMART",
-                                                 trigger_method=0)
-        entry_order.conditions = [p_cond]
-        entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
+        # TRAILING STOP
+        # entry_order = self.broker.get_trailing_stop_order(action=self.open_action,
+        #                                                  quantity=self.quantity,
+        #                                                 trail_type="AMOUNT",
+        #                                                 trail_amount=1,
+        #                                                   trail_stop=0.25,
+        #                                                  tif="GTD",
+        #                                                  gtd=(self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'),
+        #                                                  account_no=self.account_no,
+        #                                                  transmit=False)
+        # entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
 
-        sl_order = await self.broker.get_market_order(action=self.close_action,
-                                                      quantity=self.quantity,
-                                                      parent_id=entry_trade.order.orderId,
-                                                      account_no=self.account_no,
-                                                      transmit=False)
-        p_cond = self.broker.get_price_condition(cond_type=1,
-                                                 conjunction='o',
-                                                 is_more=self.y,
-                                                 price=self.stock_sl,
-                                                 contract_id=self.stock_contract[0].conId,
-                                                 exchange="SMART",
-                                                 trigger_method=0)
-        sl_order.conditions = [p_cond]
-        await self.broker.send_order(self.option_contract[0], sl_order)
+        # OCO ORDERS
+        order_1 = await self.broker.get_stop_order(action=self.open_action, stop_price=2, quantity=self.quantity, transmit=True)
+        order_2 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=True)
+        orders = [order_1, order_2]
+        entry_order = await self.broker.get_oco_order(self.broker, orders, "test", 1)
+        for i in range(0, len(orders)):
+            await self.broker.send_order(self.option_contract[0], entry_order[i])
 
-        tp_order = await self.broker.get_market_order(action=self.close_action,
-                                                      quantity=self.quantity,
-                                                      parent_id=entry_trade.order.orderId,
-                                                      account_no=self.account_no,
-                                                      transmit=True)
-        p_cond = self.broker.get_price_condition(cond_type=1,
-                                                 conjunction='o',
-                                                 is_more=self.x,
-                                                 price=self.tp1,
-                                                 contract_id=self.stock_contract[0].conId,
-                                                 exchange="SMART",
-                                                 trigger_method=0)
-        t_cond = self.broker.get_time_condition(cond_type=3,
-                                                conjunction='o',
-                                                is_more=True,
-                                                time=(self.gtd + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S'))
-        tp_order.conditions = [p_cond, t_cond]
-        await self.broker.send_order(self.option_contract[0], tp_order)
+
+        # entry_order = await self.broker.get_market_order(action=self.open_action,
+        #                                                  quantity=self.quantity,
+        #                                                  tif="GTD",
+        #                                                  gtd=(self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'),
+        #                                                  account_no=self.account_no,
+        #                                                  transmit=False)
+        # p_cond = self.broker.get_price_condition(cond_type=1,
+        #                                          conjunction='o',
+        #                                          is_more=self.y,
+        #                                          price=self.stock_entry,
+        #                                          contract_id=self.stock_contract[0].conId,
+        #                                          exchange="SMART",
+        #                                          trigger_method=0)
+        # entry_order.conditions = [p_cond]
+        # entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
+        #
+        # sl_order = await self.broker.get_market_order(action=self.close_action,
+        #                                               quantity=self.quantity,
+        #                                               parent_id=entry_trade.order.orderId,
+        #                                               account_no=self.account_no,
+        #                                               transmit=False)
+        # p_cond = self.broker.get_price_condition(cond_type=1,
+        #                                          conjunction='o',
+        #                                          is_more=self.y,
+        #                                          price=self.stock_sl,
+        #                                          contract_id=self.stock_contract[0].conId,
+        #                                          exchange="SMART",
+        #                                          trigger_method=0)
+        # sl_order.conditions = [p_cond]
+        # await self.broker.send_order(self.option_contract[0], sl_order)
+        #
+        # tp_order = await self.broker.get_market_order(action=self.close_action,
+        #                                               quantity=self.quantity,
+        #                                               parent_id=entry_trade.order.orderId,
+        #                                               account_no=self.account_no,
+        #                                               transmit=True)
+        # p_cond = self.broker.get_price_condition(cond_type=1,
+        #                                          conjunction='o',
+        #                                          is_more=self.x,
+        #                                          price=self.tp1,
+        #                                          contract_id=self.stock_contract[0].conId,
+        #                                          exchange="SMART",
+        #                                          trigger_method=0)
+        # t_cond = self.broker.get_time_condition(cond_type=3,
+        #                                         conjunction='o',
+        #                                         is_more=True,
+        #                                         time=(self.gtd + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S'))
+        # tp_order.conditions = [p_cond, t_cond]
+        # await self.broker.send_order(self.option_contract[0], tp_order)
 
     async def start(self):
         await self.connect_broker()
