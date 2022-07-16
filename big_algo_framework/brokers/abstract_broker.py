@@ -2,12 +2,6 @@ from abc import ABC, abstractmethod
 
 class Broker(ABC):
     @abstractmethod
-    def connect_broker(self, *kwargs):
-        raise NotImplementedError(
-            "Each broker must implement the 'connect_broker' method."
-        )
-
-    @abstractmethod
     def get_market_order(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'get_market_order' method."

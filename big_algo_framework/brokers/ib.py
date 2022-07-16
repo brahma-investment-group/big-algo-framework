@@ -6,20 +6,17 @@ class IB(Broker, ib_insync.IB):
     def __init__(self):
         ib_insync.IB.__init__(self)
 
-    def connect_broker(self):
-        pass
-
     # Asset
-    async def get_stock_contract(self, broker, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
+    async def get_stock_contract(self, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
         stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
-        return await broker.qualifyContractsAsync(stock_contract)
+        return await self.qualifyContractsAsync(stock_contract)
 
-    async def get_options_contract(self, broker, symbol: str = '', lastTradeDateOrContractMonth: str = '', strike: float = 0.0,
+    async def get_options_contract(self, symbol: str = '', lastTradeDateOrContractMonth: str = '', strike: float = 0.0,
                                    right: str = '', exchange: str = '', multiplier: str = '', currency: str = ''):
         option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=lastTradeDateOrContractMonth,
                                            strike=strike, right=right, exchange=exchange, multiplier=multiplier,
                                            currency=currency)
-        return await broker.qualifyContractsAsync(option_contract)
+        return await self.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
     async def get_market_order(self, action, quantity, parent_id='', tif='', gtd='', gat='', account_no='', transmit=True, **kwargs):
@@ -96,11 +93,14 @@ class IB(Broker, ib_insync.IB):
             transmit=transmit,
             **kwargs)
 
-    async def get_oto_order(self, orders):
-        pass
+    async def get_oto_order(self, parent_order_id, orders):
+        for o in orders:
+            o.parentId = parent_order_id
 
-    async def get_oco_order(self, broker, orders, oca_group_name, oca_group_type):
-        return broker.oneCancelsAll(orders, oca_group_name, oca_group_type)
+        return orders
+
+    async def get_oco_order(self, orders, oca_group_name, oca_group_type):
+        return self.oneCancelsAll(orders, oca_group_name, oca_group_type)
 
     async def get_price_condition(self, cond_type: int = 1, conjunction: str = 'a', is_more: bool = True, price: float = 0.0,
                             contract_id: int = 0, exchange: str = '', trigger_method: int = 0):
@@ -128,27 +128,93 @@ class IB(Broker, ib_insync.IB):
         return self.placeOrder(contract, order)
 
     # Get Orders/Positions
-    def get_order_by_ticker(self):
-        pass
+    def get_order_by_ticker(self, ticker):
+        orders_list = []
+        all_orders = self.get_all_orders()
+
+        for trades in all_orders:
+            if trades.contract.symbol == ticker:
+                orders_list.append(trades)
+
+        return orders_list
 
     def get_all_orders(self):
-        pass
+        orders_list = []
+        open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
 
-    def get_position_by_ticker(self):
-        pass
+        for trades in self.trades():
+            if trades.orderStatus.status in open_status:
+                orders_list.append(trades)
 
-    def get_all_positions(self):
-        pass
+        return orders_list
+
+    async def get_position_by_ticker(self, ticker):
+        pos_list = []
+        all_pos = await self.get_all_positions()
+
+        for pos in all_pos:
+            if pos.contract.symbol == ticker:
+                pos_list.append(pos)
+
+        return pos_list
+
+    async def get_all_positions(self):
+        pos_list = []
+
+        for pos in await self.reqPositionsAsync():
+            if pos.position != 0:
+                pos_list.append(pos)
+
+        return pos_list
 
     # Cancel Orders/Close Positions
     def cancel_order(self, order_id):
-        pass
+        trades = self.get_all_orders()
+
+        for trade in trades:
+            if trade.order.orderId == order_id:
+                self.cancelOrder(trade.order)
 
     def cancel_all_orders(self):
-        pass
+        trades = self.get_all_orders()
 
-    def close_position(self, underlying=False):
-        pass
+        for trade in trades:
+                self.cancelOrder(trade.order)
 
-    def close_all_positions(self, underlying=False):
-        pass
+    async def close_position(self, contract_id='', underlying=False):
+        #TODO: Implement underlying
+        pos_list = await self.get_all_positions()
+
+        for pos in pos_list:
+            if pos.contract.conId == contract_id:
+                action = ""
+                if pos.position > 0:
+                    action = "SELL"
+                elif pos.position < 0:
+                    action = "BUY"
+
+                order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
+                await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
+
+    async def close_all_positions(self, underlying=False):
+        #TODO: Implement underlying
+        pos_list = await self.get_all_positions()
+
+        for pos in pos_list:
+            action = ""
+            if pos.position > 0:
+                action = "SELL"
+            elif pos.position < 0:
+                action = "BUY"
+
+            order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
+            await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
+
+    async def get_account(self):
+        account = {}
+        acc_summary = await self.accountSummaryAsync()
+
+        for acc in acc_summary:
+            account[acc.tag] = acc.value
+
+        return account

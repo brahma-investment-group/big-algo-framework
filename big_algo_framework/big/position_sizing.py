@@ -1,7 +1,7 @@
 class PositionSizing():
     def __init__(self, available_capital, total_risk, total_risk_units, risk_unit, max_position_percent, entry):
         self.quantity = 0
-        self.available_capital = available_capital
+        self.available_capital = float(available_capital)
         self.total_risk = total_risk
         self.total_risk_units = total_risk_units
         self.risk_unit = risk_unit

@@ -16,10 +16,6 @@ class TDA(Broker):
             with webdriver.Chrome(chromedriver_path) as driver:
                 self.c = client_from_login_flow(driver, api_key, redirect_uri, token_path)
 
-    # Authentication
-    def connect_broker(self):
-        pass
-
     # Prepare/Send Orders
     def get_market_order(self, order_dict):
         symbol = order_dict["ticker"]

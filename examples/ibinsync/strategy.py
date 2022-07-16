@@ -56,26 +56,18 @@ class IBORB(Strategy):
             broker = IB()
             await broker.connectAsync(self.ip_address, self.port, self.ib_client)
         self.broker = broker
-
-        x = await self.broker.accountSummaryAsync()
-        for acc in x:
-            if acc.tag == "AvailableFunds":
-                self.available_capital = float(acc.value)
+        self.account_dict = await self.broker.get_account()
 
     async def check_open_orders(self):
-        for trades in self.broker.trades():
-            if trades.orderStatus.status == "PreSubmitted":
-                self.orders_list.append(trades.contract.symbol)
+        self.orders_list = self.broker.get_order_by_ticker(self.ticker)
 
-        if self.ticker not in self.orders_list:
+        if len(self.orders_list) == 0:
             self.is_order = False
 
     async def check_positions(self):
-        for pos in await self.broker.reqPositionsAsync():
-            if pos.position != 0:
-                self.pos_list.append(pos.contract.symbol)
+        self.pos_list = await self.broker.get_position_by_ticker(self.ticker)
 
-        if self.ticker not in self.pos_list:
+        if len(self.pos_list) == 0:
             self.is_position = False
 
     async def before_send_orders(self):
@@ -127,7 +119,7 @@ class IBORB(Strategy):
 
         # Position Sizing
         self.risk_unit = abs(self.entry - self.sl)
-        position = PositionSizing(self.available_capital,
+        position = PositionSizing(self.account_dict["AvailableFunds"],
                                   self.total_risk,
                                   self.total_risk_units,
                                   self.risk_unit,
@@ -136,8 +128,8 @@ class IBORB(Strategy):
         self.quantity = position.options_quantity(self.multiplier)
 
         # Contract
-        self.stock_contract = await self.broker.get_stock_contract(self.broker, self.ticker, self.exchange, self.currency, self.primary_exchange)
-        self.option_contract = await self.broker.get_options_contract(self.broker,
+        self.stock_contract = await self.broker.get_stock_contract(self.ticker, self.exchange, self.currency, self.primary_exchange)
+        self.option_contract = await self.broker.get_options_contract(
                                                                       self.ticker,
                                                                       self.lastTradeDateOrContractMonth,
                                                                       self.strike,
@@ -164,10 +156,23 @@ class IBORB(Strategy):
         # entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
 
         # OCO ORDERS
-        order_1 = await self.broker.get_stop_order(action=self.open_action, stop_price=2, quantity=self.quantity, transmit=True)
-        order_2 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=True)
-        orders = [order_1, order_2]
-        entry_order = await self.broker.get_oco_order(self.broker, orders, "test", 1)
+        # order_1 = await self.broker.get_stop_order(action=self.open_action, stop_price=2, quantity=self.quantity, transmit=True)
+        # order_2 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=True)
+        # orders = [order_1, order_2]
+        # entry_order = await self.broker.get_oco_order(orders, "test", 1)
+        # for i in range(0, len(orders)):
+        #     await self.broker.send_order(self.option_contract[0], entry_order[i])
+
+        # OTO ORDERS
+        order_1 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=False)
+        entry_trade = await self.broker.send_order(self.option_contract[0], order_1)
+        parent_id = entry_trade.order.orderId
+
+        order_2 = await self.broker.get_stop_order(action=self.close_action, quantity=self.quantity, stop_price=1, transmit=False)
+        order_3 = await self.broker.get_limit_order(action=self.close_action, quantity=self.quantity, limit_price=5.00, transmit=True)
+
+        orders = [order_2, order_3]
+        entry_order = await self.broker.get_oto_order(parent_id, orders)
         for i in range(0, len(orders)):
             await self.broker.send_order(self.option_contract[0], entry_order[i])
 
