@@ -74,7 +74,7 @@ class IBORB(Strategy):
         self.gtd = datetime.fromtimestamp(self.mkt_close_time / 1000)
 
         # FILTER OPTIONS
-        data = TDData()
+        data = TDData(api_key=self.tda_api)
         contract_type = ""
 
         if (self.direction == "Bullish" and self.option_action == "BUY") or \
@@ -85,11 +85,11 @@ class IBORB(Strategy):
                 (self.direction == "Bearish" and self.option_action == "BUY"):
             contract_type = "PUT"
 
-        options_df = data.get_options_data(symbol=self.ticker,
+        options_df = data.get_historic_option_data(symbol=self.ticker,
                                            contract_type=contract_type,
                                            range=self.option_range,
                                            days_forward=10,
-                                           api_key=self.tda_api)
+                                           )
 
         option_contract = filter_option_contract(direction=self.direction,
                                                    open_action=self.option_action,

@@ -6,12 +6,24 @@ import time
 import json
 
 class TDData(Data):
-    def __init__(self):
-        pass
+    def __init__(self, api_key):
+        self.api_key = api_key
 
-    def get_options_data(self, symbol="", contract_type="", strike_count="", include_quotes="False", strategy="SINGLE",
-                         interval="", strike="", range="", volatility="", underlying_price="", interest_rate="",
-                         days_to_expiration="", exp_month="ALL", option_type="ALL", days_forward=10, api_key=""):
+    async def get_historic_stock_data(self, symbol, period_type, period, frequency_type, frequency, extended_hours_data='false'):
+        endpoint = f'https://api.tdameritrade.com/v1/marketdata/{symbol}/pricehistory?' \
+                   f'&periodType={period_type}&' \
+                   f'&period={period}&' \
+                   f'&frequencyType={frequency_type}&' \
+                   f'&frequency={frequency}&' \
+                   f'&needExtendedHoursData={extended_hours_data}' \
+
+        page = requests.get(url=endpoint, params={'apikey': self.api_key})
+        time.sleep(1)
+        return json.loads(page.content)
+
+    async def get_historic_option_data(self, symbol, contract_type, strike_count="", include_quotes="False", strategy="SINGLE",
+                                 interval="", strike="", range="", volatility="", underlying_price="", interest_rate="",
+                                 days_to_expiration="", exp_month="ALL", option_type="ALL", days_forward=10):
         from_date = datetime.date.today()
         to_date = from_date + datetime.timedelta(days=days_forward)
 
@@ -33,7 +45,7 @@ class TDData(Data):
                    f'expMonth={exp_month}&' \
                    f'optionType={option_type}' \
 
-        page = requests.get(url = endpoint, params={'apikey': api_key})
+        page = requests.get(url = endpoint, params={'apikey': self.api_key})
         time.sleep(1)
         content = json.loads(page.content)
 
