@@ -17,61 +17,61 @@ class TDA(Broker):
 
     # Prepare/Send Orders
     async def get_market_order(self, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False)\
+        order = OrderBuilder(enforce_enums=False)\
                 .set_order_type('MARKET') \
                 .set_session(session.upper()) \
                 .set_duration(duration.upper()) \
-                .set_order_strategy_type('SINGLE') \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_order_strategy_type('SINGLE')
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_stop_limit_order(self, symbol: str, quantity: int, sec_type, stop_price: float, limit_price: float, action: str = 'BUY',
                           session: str = 'NORMAL', duration: str = 'DAY', stop_type: str = 'MARK'):
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False) \
+        order = OrderBuilder(enforce_enums=False) \
                 .set_order_type('STOP_LIMIT') \
                 .set_session(session.upper()) \
                 .set_duration(duration.upper()) \
                 .set_order_strategy_type('SINGLE') \
                 .set_stop_price(stop_price) \
                 .set_price(limit_price) \
-                .set_stop_type(stop_type.upper()) \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_stop_type(stop_type.upper())
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_limit_order(self, symbol: str, quantity: int, sec_type, limit_price: float, action: str = 'BUY',
                         session: str = 'NORMAL', duration: str = 'DAY'):
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False)\
+        order = OrderBuilder(enforce_enums=False)\
                 .set_order_type('LIMIT') \
                 .set_session(session.upper()) \
                 .set_duration(duration.upper()) \
                 .set_order_strategy_type('SINGLE') \
-                .set_price(limit_price) \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_price(limit_price)
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_stop_order(self, symbol: str, quantity: int, sec_type, stop_price: float, action: str = 'BUY',
                        stop_type: str = 'MARK', session: str = 'NORMAL', duration: str = 'DAY'):
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False) \
+        order = OrderBuilder(enforce_enums=False) \
                 .set_order_type('STOP') \
                 .set_session(session.upper()) \
                 .set_duration(duration.upper()) \
                 .set_order_strategy_type('SINGLE') \
                 .set_stop_price(stop_price) \
-                .set_stop_type(stop_type.upper()) \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_stop_type(stop_type.upper())
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_trailing_stop_order(self, symbol: str, quantity: int, sec_type, trailing_offset: float,
                              action: str = 'BUY', stop_price_link_type: str = 'PERCENT', stop_price_link_basis: str = 'MARK',
@@ -80,8 +80,7 @@ class TDA(Broker):
         if stop_price_link_type == 'PERCENT' and (float(trailing_offset) < 1 or float(trailing_offset) > 99):
             raise ValueError('For percent trail, the offset must be between 1 to 99')
 
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False) \
+        order = OrderBuilder(enforce_enums=False) \
                 .set_order_type('TRAILING_STOP') \
                 .set_quantity(quantity) \
                 .set_duration(duration.upper()) \
@@ -90,11 +89,12 @@ class TDA(Broker):
                 .set_stop_price_link_basis(stop_price_link_basis.upper()) \
                 .set_stop_price_link_type(stop_price_link_type.upper()) \
                 .set_stop_price_offset(trailing_offset) \
-                .set_stop_type(stop_type.upper()) \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_stop_type(stop_type.upper())
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_trailing_stop_limit_order(self, symbol: str, quantity: int, sec_type, trailing_offset: float,
                                    limit_price: float, action: str = 'BUY', stop_price_link_type: str = 'PERCENT',
@@ -104,8 +104,7 @@ class TDA(Broker):
         if stop_price_link_type == 'PERCENT' and (float(trailing_offset) < 1 or float(trailing_offset) > 99):
             raise ValueError('For percent trail, the offset must be between 1 to 99')
 
-        if sec_type == "STK":
-            return OrderBuilder(enforce_enums=False) \
+        order = OrderBuilder(enforce_enums=False) \
                 .set_order_type('TRAILING_STOP_LIMIT') \
                 .set_quantity(quantity) \
                 .set_duration(duration.upper()) \
@@ -115,11 +114,12 @@ class TDA(Broker):
                 .set_stop_price_link_type(stop_price_link_type.upper()) \
                 .set_stop_price_offset(trailing_offset) \
                 .set_stop_type(stop_type.upper()) \
-                .set_price(limit_price) \
-                .add_equity_leg(action.upper(), symbol.upper(), quantity)
+                .set_price(limit_price)
 
+        if sec_type == "STK":
+            return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
-            pass
+            return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_oto_order(self, first_order, second_order):
         oto = first_triggers_second(first_order, second_order)
