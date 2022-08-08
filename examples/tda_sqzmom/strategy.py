@@ -13,11 +13,10 @@ from big_algo_framework.big.options import filter_option_contract
 from big_algo_framework.big.helper import truncate
 
 class TDA_SQZMOM(Strategy):
-    def __init__(self, order_dict):
+    def __init__(self):
         super().__init__()
         self.is_position = False
         self.is_order = False
-        self.order_dict = order_dict.copy()
 
     def check_positions(self):
         self.is_position = False
@@ -27,7 +26,6 @@ class TDA_SQZMOM(Strategy):
         pass
 
     def start(self):
-        self.order_dict["account_no"] = config.td_account["account_no"]
         token_path = config.td_account["token_path"]
         api_key = config.td_account["api_key"]
         redirect_uri = config.td_account["redirect_uri"]
@@ -47,5 +45,9 @@ class TDA_SQZMOM(Strategy):
             if not self.is_order:
                 self.before_send_orders()
 
-                if self.order_dict["quantity"] > 0:
+                if self.quantity > 0:
                     self.send_orders()
+
+
+x = TDA_SQZMOM()
+x.execute()

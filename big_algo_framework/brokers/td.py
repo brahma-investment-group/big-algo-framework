@@ -426,7 +426,7 @@ class TDA(Broker):
 
         self.c.cancel_order(order_id, account_no)
 
-    def cancel_all_orders(self, account_no: str):
+    async def cancel_all_orders(self, account_no: str):
         """
             Cancels all orders in the given account.
 
