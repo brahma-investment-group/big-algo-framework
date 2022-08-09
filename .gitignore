@@ -22,5 +22,4 @@ ngrok.exe
 examples/chromedriver.exe
 examples/token.json
 
-examples/ibinsync/realaccount.py
-examples/ibinsync/test_verticals.py
+examples/swing/realaccount.py

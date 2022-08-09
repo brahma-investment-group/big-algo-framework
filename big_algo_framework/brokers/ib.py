@@ -579,3 +579,34 @@ class IB(Broker, ib_insync.IB):
         contract.comboLegs.append(leg2)
 
         return contract
+
+    async def get_long_put_vertical_spread_contract(self, symbol, exchange, currency, multiplier, expiration_date, itm_strike, otm_strike):
+        itm_put = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=itm_strike,
+                                                   right='P', exchange=exchange, multiplier=multiplier, currency=currency)
+        otm_put = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=otm_strike,
+                                                   right='P', exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = itm_put[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = itm_put[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = otm_put[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = otm_put[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
