@@ -2,7 +2,6 @@ from big_algo_framework.brokers.abstract_broker import Broker
 from big_algo_framework.big.helper import truncate
 from datetime import datetime
 from tda.orders.generic import OrderBuilder
-from tda.orders.common import first_triggers_second, one_cancels_other
 from tda.auth import client_from_token_file, client_from_login_flow
 
 class TDA(Broker):
@@ -202,10 +201,12 @@ class TDA(Broker):
         """
 
         if str.upper(trail_type) == "AMOUNT":
+            trail_type = "VALUE"
             if float(trail_amount) < 0:
                 raise ValueError('The trail amount must be greater than 0')
 
         elif str.upper(trail_type) == "PERCENTAGE":
+            trail_type = "PERCENT"
             if float(trail_amount) < 1 or float(trail_amount) > 99:
                 raise ValueError('The trail amount must be between 1 to 99')
 
@@ -234,7 +235,7 @@ class TDA(Broker):
                                             good_till_date='', good_after_time='', parent_id: int = '',
                                             account_no: str = '', transmit: bool = True, **kwargs):
         """
-            Returns a trailing stop order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+            Returns a trailing stop limit order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
             :param symbol: The ticker symbol.
             :param quantity: The quantity/amount.
@@ -262,15 +263,17 @@ class TDA(Broker):
         """
 
         if str.upper(trail_type) == "AMOUNT":
+            trail_type = "VALUE"
             if float(trail_amount) < 0:
                 raise ValueError('The trail amount must be greater than 0')
 
         elif str.upper(trail_type) == "PERCENTAGE":
+            trail_type = "PERCENT"
             if float(trail_amount) < 1 or float(trail_amount) > 99:
                 raise ValueError('The trail amount must be between 1 to 99')
 
         order = OrderBuilder(enforce_enums=False) \
-            .set_order_type('TRAILING_STOP') \
+            .set_order_type('TRAILING_STOP_LIMIT') \
             .set_quantity(quantity) \
             .set_duration(duration.upper()) \
             .set_session(session.upper()) \
@@ -310,12 +313,10 @@ class TDA(Broker):
             :param oca_group_type: Not Used.
         """
 
-        OrderBuilder().set_order_strategy_type("OCO")
-
-        for o in orders:
-            OrderBuilder().add_child_order_strategy(o)
-
-        return OrderBuilder()
+        return (OrderBuilder(enforce_enums=False)
+                .set_order_strategy_type("OCO")
+                .add_child_order_strategy(orders[0])
+                .add_child_order_strategy(orders[1]))
 
     async def send_order(self, contract, account_no: str, order):
         """
@@ -358,7 +359,7 @@ class TDA(Broker):
                    'AWAITING_UR_OUT', 'PENDING_ACTIVATION', 'QUEUED', 'WORKING']
 
             try:
-                symbol = i['orderLegCollection'][0]['actionument']['symbol']
+                symbol = i['orderLegCollection'][0]['instrument']['symbol']
                 underlying_symbol = symbol.split("_")
                 status = i['status']
 
@@ -393,11 +394,11 @@ class TDA(Broker):
 
         for i in all_positions['securitiesAccount']['positions']:
             try:
-                symbol = i['actionument']['symbol']
+                symbol = i['instrument']['symbol']
                 underlying_symbol = symbol.split("_")
 
                 if underlying_symbol[0] == ticker:
-                    open_positions.append(i['actionument'])
+                    open_positions.append(i['instrument'])
 
             except:
                 print("ERROR in get_position_by_ticker()")
@@ -452,8 +453,8 @@ class TDA(Broker):
         positions = open_positions["securitiesAccount"]["positions"]
 
         for i in range(0, len(positions)):
-            ticker = positions[i]["actionument"]["symbol"]
-            sec_type = positions[i]["actionument"]["assetType"]
+            ticker = positions[i]["instrument"]["symbol"]
+            sec_type = positions[i]["instrument"]["assetType"]
             long_quantity = positions[i]["longQuantity"]
             short_quantity = positions[i]["shortQuantity"]
 
