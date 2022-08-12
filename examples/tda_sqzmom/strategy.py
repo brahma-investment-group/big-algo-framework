@@ -15,7 +15,7 @@ import asyncio
 
 ticker = "SPY_081222C412" #SPY_081222C412
 sec_type = "OPT"
-action = "SELL_TO_OPEN"
+action = "BUY"
 stp_price = 6.25
 lmt_prce = 4.00
 
@@ -94,7 +94,7 @@ async def get_order_by_ticker():
 
 if __name__ == "__main__":
     # asyncio.run(get_stock_data())
-    asyncio.run(mkt_order())
+    # asyncio.run(mkt_order())
     # asyncio.run(stp_lmt_order())
     # asyncio.run(lmt_order())
     # asyncio.run(stp_order())
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     # asyncio.run(oto_order())
     # asyncio.run(oco_order())
     # asyncio.run(bracket_order())
-    # asyncio.run(cancel_all_orders())
+    asyncio.run(cancel_all_orders())
     # asyncio.run(cancel_one_order())
     # asyncio.run(get_all_orders())
     # asyncio.run(get_order_by_ticker())

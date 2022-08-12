@@ -15,7 +15,7 @@ class TDA(Broker):
                 self.c = client_from_login_flow(driver, api_key, redirect_uri, token_path)
 
     # Prepare/Send Orders
-    async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY',
+    async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY', instruction: str = 'OPEN',
                                session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
                                good_till_cancel_end_time='', good_till_date='', good_after_time='', parent_id: int = '',
                                account_no: str = '', transmit: bool = True, **kwargs):
@@ -26,6 +26,7 @@ class TDA(Broker):
             :param quantity: The quantity/amount.
             :param sec_type: The security type Possible values are "STK", "OPT".
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -46,11 +47,12 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_stop_limit_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
                                    limit_price: float, digits: int = 2, trigger_method: str = 'LAST',
-                                   action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
+                                   action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
                                    good_till_cancel_end_time='', good_till_date='', good_after_time='',
                                    parent_id: int = '', account_no: str = '', transmit: bool = True, **kwargs):
         """
@@ -65,6 +67,7 @@ class TDA(Broker):
             :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
                                    Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -88,10 +91,11 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_limit_order(self, symbol: str, quantity: int, sec_type: str, limit_price: float, digits: int = 2,
-                              action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY',
+                              action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
                               good_till_cancel_start_time='', good_till_cancel_end_time='', good_till_date='',
                               good_after_time='', parent_id: int = '', account_no: str = '',
                               transmit: bool = True, **kwargs):
@@ -104,6 +108,7 @@ class TDA(Broker):
             :param limit_price: The limit price for the order.
             :param digits: The number of digits to which the price should be truncated.
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -125,10 +130,11 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_stop_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
-                             digits: int = 2, trigger_method: str = 'LAST', action: str = 'BUY',
+                             digits: int = 2, trigger_method: str = 'LAST', action: str = 'BUY', instruction: str = 'OPEN',
                              session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
                              good_till_cancel_end_time='', good_till_date='', good_after_time='',
                              parent_id: int = '', account_no: str = '', transmit: bool = True, **kwargs):
@@ -143,6 +149,7 @@ class TDA(Broker):
             :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
                                    Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -165,12 +172,13 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_trailing_stop_order(self, symbol: str, quantity: int, sec_type: str, trail_type: str,
                                       trail_amount: float, trail_stop: float = '', digits: int = 2,
                                       trigger_method: str = 'LAST', stop_price_link_basis: str = 'LAST',
-                                      action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY',
+                                      action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
                                       good_till_cancel_start_time='', good_till_cancel_end_time='',
                                       good_till_date='', good_after_time='', parent_id: int = '',
                                       account_no: str = '', transmit: bool = True, **kwargs):
@@ -189,6 +197,7 @@ class TDA(Broker):
             :param stop_price_link_basis: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
                                    Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -224,13 +233,14 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_trailing_stop_limit_order(self, symbol: str, quantity: int, sec_type: str, trail_type: str,
                                             trail_amount: float, trail_stop: float = '', trail_limit: float = '',
                                             limit_price_offset: float = '', digits: int = 2,
                                             trigger_method: str = 'LAST', stop_price_link_basis: str = 'LAST',
-                                            action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY',
+                                            action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
                                             good_till_cancel_start_time='', good_till_cancel_end_time='',
                                             good_till_date='', good_after_time='', parent_id: int = '',
                                             account_no: str = '', transmit: bool = True, **kwargs):
@@ -251,6 +261,7 @@ class TDA(Broker):
             :param stop_price_link_basis: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
                                    Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
             :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
             :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
             :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
             :param good_till_cancel_start_time: Not used.
@@ -287,6 +298,7 @@ class TDA(Broker):
         if sec_type == "STK":
             return order.add_equity_leg(action.upper(), symbol.upper(), quantity)
         elif sec_type == "OPT":
+            action = action.upper() + "_TO_" + instruction.upper()
             return order.add_option_leg(action.upper(), symbol.upper(), quantity)
 
     async def get_oto_order(self, parent_order, child_orders):
