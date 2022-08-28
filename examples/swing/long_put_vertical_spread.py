@@ -23,17 +23,17 @@ class LongPutVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "IBKR"
-        self.primary_exchange = "BATS"
-        self.stock_stp_entry = 61
-        self.stock_lmt_entry = 0.99 * self.stock_stp_entry
-        self.stock_sl = 65
-        self.stock_tp = 55
-        self.itm_strike = 65
-        self.otm_strike = 55
+        self.ticker = "AMZN"
+        self.primary_exchange = "NASDAQ"
+        self.stock_stp_entry = 132.94
+        self.stock_lmt_entry = 0.999 * self.stock_stp_entry
+        self.stock_sl = 136.33
+        self.stock_tp = 129
+        self.itm_strike = 133
+        self.otm_strike = 129
         self.quantity = 1
 
-        self.strike_date = 20220819 #YYYYMMDD
+        self.strike_date = 20220902 #YYYYMMDD
         self.entry_time = "09:30:00"
 
     async def connect_broker(self):

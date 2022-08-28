@@ -426,7 +426,7 @@ class IB(Broker, ib_insync.IB):
         return self.placeOrder(contract, order)
 
     # Get Orders/Positions
-    def get_order_by_ticker(self, ticker: str, account_no: str):
+    async def get_order_by_ticker(self, ticker: str, account_no: str):
         """
             Returns a list of open orders for the given ticker
 
@@ -435,7 +435,7 @@ class IB(Broker, ib_insync.IB):
         """
 
         orders_list = []
-        all_orders = self.get_all_orders()
+        all_orders = await self.get_all_orders(account_no=account_no)
 
         for trades in all_orders:
             if trades.contract.symbol == ticker:
@@ -443,7 +443,7 @@ class IB(Broker, ib_insync.IB):
 
         return orders_list
 
-    def get_all_orders(self, account_no: str):
+    async def get_all_orders(self, account_no: str):
         """
             Returns a list of all open orders.
 
@@ -468,7 +468,7 @@ class IB(Broker, ib_insync.IB):
         """
 
         pos_list = []
-        all_pos = await self.get_all_positions()
+        all_pos = await self.get_all_positions(account_no=account_no)
 
         for pos in all_pos:
             if pos.contract.symbol == ticker:
@@ -500,7 +500,7 @@ class IB(Broker, ib_insync.IB):
             :param account_no: Not used.
         """
 
-        trades = self.get_all_orders()
+        trades = await self.get_all_orders(account_no=account_no)
 
         for trade in trades:
             if trade.order.orderId == order_id:
@@ -513,25 +513,26 @@ class IB(Broker, ib_insync.IB):
             :param account_no: Not used.
         """
 
-        trades = self.get_all_orders()
+        trades = await self.get_all_orders(account_no=account_no)
 
         for trade in trades:
             self.cancelOrder(trade.order)
 
-    async def close_position(self, contract_id='', underlying=False):
-        #TODO: Implement underlying
-        pos_list = await self.get_all_positions()
-
-        for pos in pos_list:
-            if pos.contract.conId == contract_id:
-                action = ""
-                if pos.position > 0:
-                    action = "SELL"
-                elif pos.position < 0:
-                    action = "BUY"
-
-                order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
-                await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
+    # async def close_position(self, account_no, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
+    #     #TODO: Implement underlying
+    #     #NEED REWRITE --- THINK ABT IT LATER
+    #     pos_list = await self.get_all_positions(account_no=account_no)
+    #
+    #     for pos in pos_list:
+    #         if pos.contract.symbol == symbol:
+    #             action = ""
+    #             if pos.position > 0:
+    #                 action = "SELL"
+    #             elif pos.position < 0:
+    #                 action = "BUY"
+    #
+    #             order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
+    #             await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
 
     async def close_all_positions(self, underlying=False):
         #TODO: Implement underlying
