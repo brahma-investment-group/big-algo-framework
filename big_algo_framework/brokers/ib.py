@@ -492,7 +492,7 @@ class IB(Broker, ib_insync.IB):
         return pos_list
 
     # Cancel Orders/Close Positions
-    def cancel_order(self, order_id: int, account_no: str):
+    async def cancel_order(self, order_id: int, account_no: str):
         """
             Cancels the order for an given order id.
 
@@ -506,7 +506,7 @@ class IB(Broker, ib_insync.IB):
             if trade.order.orderId == order_id:
                 self.cancelOrder(trade.order)
 
-    def cancel_all_orders(self, account_no: str):
+    async def cancel_all_orders(self, account_no: str):
         """
             Cancels all orders in the given account.
 
@@ -518,7 +518,8 @@ class IB(Broker, ib_insync.IB):
         for trade in trades:
             self.cancelOrder(trade.order)
 
-    # async def close_position(self, account_no, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
+    async def close_position(self, account_no, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
+        pass
     #     #TODO: Implement underlying
     #     #NEED REWRITE --- THINK ABT IT LATER
     #     pos_list = await self.get_all_positions(account_no=account_no)

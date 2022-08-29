@@ -23,14 +23,14 @@ class LongPutVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "AMZN"
-        self.primary_exchange = "NASDAQ"
-        self.stock_stp_entry = 132.94
+        self.ticker = "SPY"
+        self.primary_exchange = "ARCA"
+        self.stock_stp_entry = 405.24
         self.stock_lmt_entry = 0.999 * self.stock_stp_entry
-        self.stock_sl = 136.33
-        self.stock_tp = 129
-        self.itm_strike = 133
-        self.otm_strike = 129
+        self.stock_sl = 419.97
+        self.stock_tp = 400.00
+        self.itm_strike = 406
+        self.otm_strike = 400
         self.quantity = 1
 
         self.strike_date = 20220902 #YYYYMMDD
