@@ -518,26 +518,22 @@ class IB(Broker, ib_insync.IB):
         for trade in trades:
             self.cancelOrder(trade.order)
 
-    async def close_position(self, account_no, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
-        pass
-    #     #TODO: Implement underlying
-    #     #NEED REWRITE --- THINK ABT IT LATER
-    #     pos_list = await self.get_all_positions(account_no=account_no)
-    #
-    #     for pos in pos_list:
-    #         if pos.contract.symbol == symbol:
-    #             action = ""
-    #             if pos.position > 0:
-    #                 action = "SELL"
-    #             elif pos.position < 0:
-    #                 action = "BUY"
-    #
-    #             order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
-    #             await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
+    async def close_position(self, account_no, symbol: str):
+        pos_list = await self.get_all_positions(account_no=account_no)
 
-    async def close_all_positions(self, underlying=False):
-        #TODO: Implement underlying
-        pos_list = await self.get_all_positions()
+        for pos in pos_list:
+            if pos.contract.symbol == symbol:
+                action = ""
+                if pos.position > 0:
+                    action = "SELL"
+                elif pos.position < 0:
+                    action = "BUY"
+
+                order = await self.get_market_order(symbol=symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
+                await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
+
+    async def close_all_positions(self, account_no):
+        pos_list = await self.get_all_positions(account_no=account_no)
 
         for pos in pos_list:
             action = ""
@@ -546,8 +542,8 @@ class IB(Broker, ib_insync.IB):
             elif pos.position < 0:
                 action = "BUY"
 
-            order = await self.get_market_order(action=action, quantity=pos.position, account_no=pos.account)
-            await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), order)
+            order = await self.get_market_order(symbol=pos.contract.symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
+            await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
 
     async def get_account(self):
         account = {}

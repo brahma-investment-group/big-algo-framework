@@ -456,9 +456,35 @@ class TDA(Broker):
     async def replace_order(self, account_no, order_id, order):
         self.c.replace_order(account_no, order_id, order)
 
-    async def close_position(self, account_no, symbol: str, quantity: int, sec_type, action: str = 'BUY', session: str = 'NORMAL', duration: str = 'DAY'):
-        mkt_order = await self.get_market_order(symbol, quantity, sec_type, action, session, duration)
-        await self.send_order(account_no, mkt_order)
+    async def close_position(self, account_no, symbol: str):
+        open_positions = await self.get_all_positions(account_no)
+        positions = open_positions["securitiesAccount"]["positions"]
+
+        for i in range(0, len(positions)):
+            ticker = positions[i]["instrument"]["symbol"]
+
+            if ticker == symbol:
+                sec_type = positions[i]["instrument"]["assetType"]
+                long_quantity = positions[i]["longQuantity"]
+                short_quantity = positions[i]["shortQuantity"]
+                quantity = 0
+                action = ''
+
+                if sec_type == "EQUITY":
+                    sec_type = "STK"
+                elif sec_type == "OPTION":
+                    sec_type = "OPT"
+
+                if long_quantity > 0:
+                    quantity = long_quantity
+                    action = "SELL"
+
+                if short_quantity > 0:
+                    quantity = short_quantity
+                    action = "BUY"
+
+                order = await self.get_market_order(symbol=ticker, quantity=quantity, sec_type=sec_type, action=action, instruction="CLOSE", account_no=account_no)
+                await self.send_order('', account_no, order)
 
     async def close_all_positions(self, account_no):
         open_positions = await self.get_all_positions(account_no)
@@ -469,6 +495,8 @@ class TDA(Broker):
             sec_type = positions[i]["instrument"]["assetType"]
             long_quantity = positions[i]["longQuantity"]
             short_quantity = positions[i]["shortQuantity"]
+            quantity = 0
+            action = ''
 
             if sec_type == "EQUITY":
                 sec_type = "STK"
@@ -476,6 +504,12 @@ class TDA(Broker):
                 sec_type = "OPT"
 
             if long_quantity > 0:
-                await self.close_position(account_no, ticker, long_quantity, sec_type, "SELL", 'NORMAL', 'DAY')
+                quantity = long_quantity
+                action = "SELL"
+
             if short_quantity > 0:
-                await self.close_position(account_no, ticker, short_quantity, sec_type, "BUY", 'NORMAL', 'DAY')
+                quantity = short_quantity
+                action = "BUY"
+
+            order = await self.get_market_order(symbol=ticker, quantity=quantity, sec_type=sec_type, action=action, instruction="CLOSE", account_no=account_no)
+            await self.send_order('', account_no, order)
