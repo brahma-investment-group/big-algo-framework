@@ -23,18 +23,18 @@ class LongCallVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "MCD"
-        self.primary_exchange = "NYSE"
-        self.stock_stp_entry = 260.92
-        self.stock_lmt_entry = 1.005 * self.stock_stp_entry
-        self.stock_sl = 250
-        self.stock_tp = 262.18
-        self.itm_strike = 260
-        self.otm_strike = 262.5
-        self.quantity = 2
+        self.ticker = "SBUX"
+        self.primary_exchange = "NASDAQ"
+        self.stock_stp_entry = 85.48
+        self.stock_lmt_entry = 1.001 * self.stock_stp_entry
+        self.stock_sl = 82.92
+        self.stock_tp = 87.50
+        self.itm_strike = 85
+        self.otm_strike = 87
+        self.quantity = 1
 
-        self.strike_date = 20220812 #YYYYMMDD
-        self.entry_time = "09:30:00"
+        self.strike_date = 20220909 #YYYYMMDD
+        self.entry_time = "09:45:00"
 
     async def connect_broker(self):
         global broker

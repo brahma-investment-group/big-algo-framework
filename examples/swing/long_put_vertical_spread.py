@@ -23,8 +23,8 @@ class LongPutVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "FDX"
-        self.primary_exchange = "NYSE"
+        self.ticker = "SBUX"
+        self.primary_exchange = "NASDAQ"
         self.stock_stp_entry = 212.60
         self.stock_lmt_entry = 0.999 * self.stock_stp_entry
         self.stock_sl = 219.00
@@ -34,7 +34,7 @@ class LongPutVeticalSpread(Strategy):
         self.quantity = 1
 
         self.strike_date = 20220909 #YYYYMMDD
-        self.entry_time = "09:30:00"
+        self.entry_time = "09:45:00"
 
     async def connect_broker(self):
         global broker
