@@ -11,9 +11,9 @@ class IB(Broker, ib_insync.IB):
         stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
         return await self.qualifyContractsAsync(stock_contract)
 
-    async def get_options_contract(self, symbol: str = '', lastTradeDateOrContractMonth: str = '', strike: float = 0.0,
-                                   right: str = '', exchange: str = '', multiplier: str = '', currency: str = ''):
-        option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=lastTradeDateOrContractMonth,
+    async def get_options_contract(self, symbol: str = '', expiration_date: str = '', strike: float = 0.0,
+                                   right: str = '', exchange: str = '', multiplier: str = '100', currency: str = ''):
+        option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=expiration_date,
                                            strike=strike, right=right, exchange=exchange, multiplier=multiplier,
                                            currency=currency)
         return await self.qualifyContractsAsync(option_contract)
@@ -310,7 +310,6 @@ class IB(Broker, ib_insync.IB):
             trail_limit = ""
             limit_price_offset = truncate(limit_price_offset, digits)
 
-
         if str.upper(trail_type) == "AMOUNT":
             if float(trail_amount) < 0:
                 raise ValueError('The trail amount must be greater than 0')
@@ -435,7 +434,7 @@ class IB(Broker, ib_insync.IB):
         """
 
         orders_list = []
-        all_orders = await self.get_all_orders(account_no=account_no)
+        all_orders = await self.get_all_orders(account_no='')
 
         for trades in all_orders:
             if trades.contract.symbol == ticker:
@@ -468,7 +467,7 @@ class IB(Broker, ib_insync.IB):
         """
 
         pos_list = []
-        all_pos = await self.get_all_positions(account_no=account_no)
+        all_pos = await self.get_all_positions(account_no='')
 
         for pos in all_pos:
             if pos.contract.symbol == ticker:
@@ -500,7 +499,7 @@ class IB(Broker, ib_insync.IB):
             :param account_no: Not used.
         """
 
-        trades = await self.get_all_orders(account_no=account_no)
+        trades = await self.get_all_orders(account_no='')
 
         for trade in trades:
             if trade.order.orderId == order_id:
@@ -513,13 +512,20 @@ class IB(Broker, ib_insync.IB):
             :param account_no: Not used.
         """
 
-        trades = await self.get_all_orders(account_no=account_no)
+        trades = await self.get_all_orders(account_no='')
 
         for trade in trades:
             self.cancelOrder(trade.order)
 
     async def close_position(self, account_no, symbol: str):
-        pos_list = await self.get_all_positions(account_no=account_no)
+        """
+            Closes all positions for the requested symbol.
+
+            :param account_no: Not Used.
+            :param symbol: The symbol for which the positions should be closed.
+        """
+
+        pos_list = await self.get_all_positions(account_no='')
 
         for pos in pos_list:
             if pos.contract.symbol == symbol:
@@ -530,10 +536,16 @@ class IB(Broker, ib_insync.IB):
                     action = "BUY"
 
                 order = await self.get_market_order(symbol=symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
-                await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
+                await self.send_order(contract=ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no='', order=order)
 
     async def close_all_positions(self, account_no):
-        pos_list = await self.get_all_positions(account_no=account_no)
+        """
+            Closes all positions.
+
+            :param account_no: Not Used.
+        """
+
+        pos_list = await self.get_all_positions(account_no='')
 
         for pos in pos_list:
             action = ""
@@ -545,19 +557,25 @@ class IB(Broker, ib_insync.IB):
             order = await self.get_market_order(symbol=pos.contract.symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
             await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
 
-    async def get_account(self):
-        account = {}
-        acc_summary = await self.accountSummaryAsync()
+    # Complex Option Contracts
+    async def get_long_call_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
+                                                     itm_strike: float = 0.0, otm_strike: float = 0.0,
+                                                     exchange: str = '', multiplier: str = '100', currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-        for acc in acc_summary:
-            account[acc.tag] = acc.value
+            :param symbol: The symbol.
+            :param expiration_date: The expiration date for the contract. Format: #YYYYMMDD.
+            :param itm_strike: In-The-Money strike price. Usually lower than the current market price.
+            :param otm_strike: Out-The-Money strike price. Usually greater than the current market price.
+            :param exchange: The exchange on which the order should be submitted. Possible values are "SMART" or any other valid exchange.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: IThe currency for the contract.
+        """
 
-        return account
-
-    async def get_long_call_vertical_spread_contract(self, symbol, exchange, currency, multiplier, expiration_date, itm_strike, otm_strike):
-        itm_call = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=itm_strike,
+        itm_call = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=itm_strike,
                                                    right='C', exchange=exchange, multiplier=multiplier, currency=currency)
-        otm_call = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=otm_strike,
+        otm_call = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=otm_strike,
                                                    right='C', exchange=exchange, multiplier=multiplier, currency=currency)
 
         contract = ib_insync.Contract()
@@ -584,10 +602,24 @@ class IB(Broker, ib_insync.IB):
 
         return contract
 
-    async def get_long_put_vertical_spread_contract(self, symbol, exchange, currency, multiplier, expiration_date, itm_strike, otm_strike):
-        itm_put = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=itm_strike,
+    async def get_long_put_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
+                                                    itm_strike: float = 0.0, otm_strike: float = 0.0,
+                                                    exchange: str = '', multiplier: str = '100', currency: str = ''):
+        """
+            Returns a long put vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param expiration_date: The expiration date for the contract. Format: #YYYYMMDD.
+            :param itm_strike: In-The-Money strike price. Usually greater than the current market price.
+            :param otm_strike: Out-The-Money strike price. Usually lower than the current market price.
+            :param exchange: The exchange on which the order should be submitted. Possible values are "SMART" or any other valid exchange.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: IThe currency for the contract.
+        """
+
+        itm_put = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=itm_strike,
                                                    right='P', exchange=exchange, multiplier=multiplier, currency=currency)
-        otm_put = await self.get_options_contract(symbol=symbol, lastTradeDateOrContractMonth=expiration_date, strike=otm_strike,
+        otm_put = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=otm_strike,
                                                    right='P', exchange=exchange, multiplier=multiplier, currency=currency)
 
         contract = ib_insync.Contract()
@@ -614,3 +646,16 @@ class IB(Broker, ib_insync.IB):
 
         return contract
 
+    # Account Information
+    async def get_account(self):
+        """
+            Returns a dictionary with account summary details.
+        """
+
+        account = {}
+        acc_summary = await self.accountSummaryAsync()
+
+        for acc in acc_summary:
+            account[acc.tag] = acc.value
+
+        return account

@@ -17,9 +17,9 @@ class LongCallVeticalSpread(Strategy):
         super().__init__()
 
         self.ip_address = config.ib_account["ip_address"]
-        self.port = config.ib_account["port"]
+        self.port = 7497 #config.ib_account["port"]
         self.ib_client = config.ib_account["ib_client"]
-        self.account_no = config.ib_account["account_no"]
+        self.account_no = "DU1927563" #config.ib_account["account_no"]
         self.currency = "USD"
         self.exchange = "SMART"
 
@@ -33,8 +33,8 @@ class LongCallVeticalSpread(Strategy):
         self.otm_strike = 87
         self.quantity = 1
 
-        self.strike_date = 20220909 #YYYYMMDD
-        self.entry_time = "09:45:00"
+        self.strike_date = "20220909" #YYYYMMDD
+        self.entry_time = "20220905 09:45:00"
 
     async def connect_broker(self):
         global broker
@@ -49,7 +49,7 @@ class LongCallVeticalSpread(Strategy):
                                                                    self.primary_exchange)
         self.contract = await self.broker.get_long_call_vertical_spread_contract(symbol=self.ticker,
                                                                                  exchange=self.exchange,
-                                                                                 currency=self.currency, multiplier=100,
+                                                                                 currency=self.currency, multiplier="100",
                                                                                  expiration_date=self.strike_date,
                                                                                  itm_strike=self.itm_strike,
                                                                                  otm_strike=self.otm_strike)

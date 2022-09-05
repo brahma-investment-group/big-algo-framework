@@ -33,8 +33,8 @@ class LongPutVeticalSpread(Strategy):
         self.otm_strike = 212.5
         self.quantity = 1
 
-        self.strike_date = 20220909 #YYYYMMDD
-        self.entry_time = "09:45:00"
+        self.strike_date = "20220909" #YYYYMMDD
+        self.entry_time = "20220905 09:45:00"
 
     async def connect_broker(self):
         global broker
@@ -49,7 +49,7 @@ class LongPutVeticalSpread(Strategy):
                                                                    self.primary_exchange)
         self.contract = await self.broker.get_long_put_vertical_spread_contract(symbol=self.ticker,
                                                                                  exchange=self.exchange,
-                                                                                 currency=self.currency, multiplier=100,
+                                                                                 currency=self.currency, multiplier="100",
                                                                                  expiration_date=self.strike_date,
                                                                                  itm_strike=self.itm_strike,
                                                                                  otm_strike=self.otm_strike)

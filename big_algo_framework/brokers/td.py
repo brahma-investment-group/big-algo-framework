@@ -1,8 +1,9 @@
 from big_algo_framework.brokers.abstract_broker import Broker
 from big_algo_framework.big.helper import truncate
-from datetime import datetime
+from datetime import datetime, date
 from tda.orders.generic import OrderBuilder
 from tda.auth import client_from_token_file, client_from_login_flow
+from polygon import build_option_symbol
 
 class TDA(Broker):
     def __init__(self, token_path, api_key, redirect_uri, chromedriver_path):
@@ -13,6 +14,19 @@ class TDA(Broker):
             from selenium import webdriver
             with webdriver.Chrome(chromedriver_path) as driver:
                 self.c = client_from_login_flow(driver, api_key, redirect_uri, token_path)
+
+    # Asset
+    async def get_stock_contract(self, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
+        stock_contract = symbol
+
+        return stock_contract
+
+    async def get_options_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '' ,
+                                   expiry_year: int = '', strike: float = 0.0, right: str = '', exchange: str = '',
+                                   multiplier: str = '100', currency: str = ''):
+        option_contract = build_option_symbol(symbol, date(expiry_year, expiry_month, expiry_date), right, strike, _format='tda')
+
+        return option_contract
 
     # Prepare/Send Orders
     async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY', instruction: str = 'OPEN',
@@ -429,7 +443,7 @@ class TDA(Broker):
         return response.json()
 
     # Cancel Orders/Close Positions
-    def cancel_order(self, order_id: int, account_no: str):
+    async def cancel_order(self, order_id: int, account_no: str):
         """
             Cancels the order for an given order id.
 
@@ -451,12 +465,16 @@ class TDA(Broker):
 
         for i in range(0, len(orders)):
             order_id = orders[i]["orderId"]
-            self.cancel_order(order_id, account_no)
-
-    async def replace_order(self, account_no, order_id, order):
-        self.c.replace_order(account_no, order_id, order)
+            await self.cancel_order(order_id, account_no)
 
     async def close_position(self, account_no, symbol: str):
+        """
+            Closes all positions for the requested symbol.
+
+            :param account_no: The account number from which to get the orders.
+            :param symbol: The symbol for which the positions should be closed.
+        """
+
         open_positions = await self.get_all_positions(account_no)
         positions = open_positions["securitiesAccount"]["positions"]
 
@@ -487,6 +505,12 @@ class TDA(Broker):
                 await self.send_order('', account_no, order)
 
     async def close_all_positions(self, account_no):
+        """
+            Closes all positions.
+
+            :param account_no: The account number from which to get the orders.
+        """
+
         open_positions = await self.get_all_positions(account_no)
         positions = open_positions["securitiesAccount"]["positions"]
 
@@ -513,3 +537,20 @@ class TDA(Broker):
 
             order = await self.get_market_order(symbol=ticker, quantity=quantity, sec_type=sec_type, action=action, instruction="CLOSE", account_no=account_no)
             await self.send_order('', account_no, order)
+
+    # Complex Option Contracts
+    async def get_long_call_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
+                                                     itm_strike: float = 0.0, otm_strike: float = 0.0,
+                                                     exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        pass
+
+    async def get_long_put_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
+                                                    itm_strike: float = 0.0, otm_strike: float = 0.0,
+                                                    exchange: str = '', multiplier: str = '100',
+                                                    currency: str = ''):
+        pass
+
+    # Account Information
+    async def get_account(self):
+        pass
