@@ -12,7 +12,7 @@ import config
 
 broker = None
 
-class LongCallVeticalSpread(Strategy):
+class LongCall(Strategy):
     def __init__(self):
         super().__init__()
 
@@ -23,15 +23,14 @@ class LongCallVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "NVDA"
-        self.primary_exchange = "NASDAQ"
-        self.stock_stp_entry = 138.89
+        self.ticker = "GM"
+        self.primary_exchange = "NYSE"
+        self.stock_stp_entry = 40.18
         self.stock_lmt_entry = 1.001 * self.stock_stp_entry
-        self.stock_sl = 133.45
-        self.stock_tp = 149.50
-        self.itm_strike = 138
-        self.otm_strike = 139
-        self.quantity = 1
+        self.stock_sl = 38.39
+        self.stock_tp = 47.00
+        self.strike = 41
+        self.quantity = 2
 
         self.strike_date = "20220916" #YYYYMMDD
         self.entry_time = "20220908 09:45:00"
@@ -47,12 +46,13 @@ class LongCallVeticalSpread(Strategy):
     async def before_send_orders(self):
         self.stock_contract = await self.broker.get_stock_contract(self.ticker, self.exchange, self.currency,
                                                                    self.primary_exchange)
-        self.contract = await self.broker.get_long_call_vertical_spread_contract(symbol=self.ticker,
-                                                                                 exchange=self.exchange,
-                                                                                 currency=self.currency, multiplier="100",
-                                                                                 expiration_date=self.strike_date,
-                                                                                 itm_strike=self.itm_strike,
-                                                                                 otm_strike=self.otm_strike)
+        self.contract = await self.broker.get_options_contract(symbol=self.ticker,
+                                                               expiration_date=self.strike_date,
+                                                               strike=self.strike,
+                                                               right='C',
+                                                               exchange=self.exchange,
+                                                               multiplier="100",
+                                                               currency=self.currency)
 
     async def send_orders(self):
         entry_order = await self.broker.get_market_order(action="BUY",
@@ -76,7 +76,7 @@ class LongCallVeticalSpread(Strategy):
                                                          conjunction= 'a',
                                                          is_more= True)
         entry_order.conditions = [stp_price_cond, lmt_price_cond, time_cond]
-        entry_trade = await self.broker.send_order(self.contract, "", entry_order)
+        entry_trade = await self.broker.send_order(self.contract[0], "", entry_order)
         # ***********************************************************************************************************
 
         sl_order = await self.broker.get_market_order(action="SELL",
@@ -93,7 +93,7 @@ class LongCallVeticalSpread(Strategy):
                                                        contract_id=self.stock_contract[0].conId,
                                                        exchange="SMART")
         sl_order.conditions = [p_cond]
-        await self.broker.send_order(self.contract, "", sl_order)
+        await self.broker.send_order(self.contract[0], "", sl_order)
         # ***********************************************************************************************************
 
         tp_order = await self.broker.get_market_order(action="SELl",
@@ -110,7 +110,7 @@ class LongCallVeticalSpread(Strategy):
                                                        contract_id=self.stock_contract[0].conId,
                                                        exchange="SMART")
         tp_order.conditions = [p_cond]
-        await self.broker.send_order(self.contract, "", tp_order)
+        await self.broker.send_order(self.contract[0], "", tp_order)
 
     async def start(self):
         await self.connect_broker()
@@ -124,5 +124,5 @@ class LongCallVeticalSpread(Strategy):
             self.after_send_orders()
 
 if __name__ == "__main__":
-    x = LongCallVeticalSpread()
+    x = LongCall()
     asyncio.run(x.execute())
