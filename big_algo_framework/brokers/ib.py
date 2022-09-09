@@ -479,14 +479,19 @@ class IB(Broker, ib_insync.IB):
         """
             Returns a list of all open positions.
 
-            :param account_no: Not used.
+            :param account_no: The account number from which to get the orders.
         """
 
         pos_list = []
 
         for pos in await self.reqPositionsAsync():
-            if pos.position != 0:
-                pos_list.append(pos)
+            if account_no:
+                if pos.position != 0 and pos.account == account_no:
+                    pos_list.append(pos)
+
+            else:
+                if pos.position != 0:
+                    pos_list.append(pos)
 
         return pos_list
 
