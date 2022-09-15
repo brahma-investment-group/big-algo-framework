@@ -19,7 +19,7 @@ class IB(Broker, ib_insync.IB):
         return await self.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
-    async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY',  instruction: str = 'OPEN',
+    async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY', instruction: str = 'OPEN',
                                session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
                                good_till_cancel_end_time='', good_till_date='', good_after_time='', parent_id: int = '',
                                account_no: str = '', transmit: bool = True, **kwargs):
