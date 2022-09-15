@@ -23,17 +23,18 @@ class LongCall(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "GM"
+        self.ticker = "RBLX"
         self.primary_exchange = "NYSE"
-        self.stock_stp_entry = 40.18
+        self.stock_stp_entry = 45.93
         self.stock_lmt_entry = 1.001 * self.stock_stp_entry
-        self.stock_sl = 38.39
-        self.stock_tp = 47.00
-        self.strike = 41
-        self.quantity = 2
+        self.opt_lmt_price = 10.5
+        # self.stock_sl = 38.39
+        # self.stock_tp = 47.00
+        self.strike = 46
+        self.quantity = 1
 
-        self.strike_date = "20220916" #YYYYMMDD
-        self.entry_time = "20220908 09:45:00"
+        self.strike_date = "20220923" #YYYYMMDD
+        self.entry_time = "20220915 09:45:00"
 
     async def connect_broker(self):
         global broker
@@ -55,13 +56,14 @@ class LongCall(Strategy):
                                                                currency=self.currency)
 
     async def send_orders(self):
-        entry_order = await self.broker.get_market_order(action="BUY",
-                                                         quantity=self.quantity,
-                                                         account_no=self.account_no,
-                                                         duration="GTC",
-                                                         transmit=False,
-                                                         sec_type="",
-                                                         symbol="")
+        entry_order = await self.broker.get_limit_order(action="BUY",
+                                                        quantity=self.quantity,
+                                                        limit_price=self.opt_lmt_price,
+                                                        account_no=self.account_no,
+                                                        duration="GTC",
+                                                        transmit=False,
+                                                        sec_type="",
+                                                        symbol="")
         stp_price_cond = await self.broker.get_price_condition(conjunction='a',
                                                                is_more=True,
                                                                price=self.stock_stp_entry,
@@ -79,38 +81,19 @@ class LongCall(Strategy):
         entry_trade = await self.broker.send_order(self.contract[0], "", entry_order)
         # ***********************************************************************************************************
 
-        sl_order = await self.broker.get_market_order(action="SELL",
-                                                      quantity=self.quantity,
-                                                      parent_id=entry_trade.order.orderId,
-                                                      account_no=self.account_no,
-                                                      duration="GTC",
-                                                      transmit=False,
-                                                      sec_type="",
-                                                      symbol="")
-        p_cond = await self.broker.get_price_condition(conjunction='o',
-                                                       is_more=False,
-                                                       price=self.stock_sl,
-                                                       contract_id=self.stock_contract[0].conId,
-                                                       exchange="SMART")
-        sl_order.conditions = [p_cond]
+        sl_order = await self.broker.get_trailing_stop_order(symbol="",
+                                                             quantity=self.quantity,
+                                                             sec_type="",
+                                                             trail_type="PERCENTAGE",
+                                                             trail_amount=20,
+                                                             action='SELL',
+                                                             duration='GTC',
+                                                             parent_id=entry_trade.order.orderId,
+                                                             account_no=self.account_no,
+                                                             transmit=True)
+
         await self.broker.send_order(self.contract[0], "", sl_order)
         # ***********************************************************************************************************
-
-        tp_order = await self.broker.get_market_order(action="SELl",
-                                                      quantity=self.quantity,
-                                                      parent_id=entry_trade.order.orderId,
-                                                      account_no=self.account_no,
-                                                      duration="GTC",
-                                                      transmit=True,
-                                                      sec_type="",
-                                                      symbol="")
-        p_cond = await self.broker.get_price_condition(conjunction='o',
-                                                       is_more=True,
-                                                       price=self.stock_tp,
-                                                       contract_id=self.stock_contract[0].conId,
-                                                       exchange="SMART")
-        tp_order.conditions = [p_cond]
-        await self.broker.send_order(self.contract[0], "", tp_order)
 
     async def start(self):
         await self.connect_broker()
