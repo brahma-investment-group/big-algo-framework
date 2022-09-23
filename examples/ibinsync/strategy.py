@@ -1,3 +1,5 @@
+import time
+
 from big_algo_framework.strategies.abstract_strategy import *
 from big_algo_framework.brokers.ib import IB
 from big_algo_framework.data.td import TDData
@@ -59,13 +61,13 @@ class IBORB(Strategy):
         self.account_dict = await self.broker.get_account()
 
     async def check_open_orders(self):
-        self.orders_list = self.broker.get_order_by_ticker(self.ticker)
+        self.orders_list = await self.broker.get_order_by_ticker(ticker=self.ticker, account_no=self.account_no)
 
         if len(self.orders_list) == 0:
             self.is_order = False
 
     async def check_positions(self):
-        self.pos_list = await self.broker.get_position_by_ticker(self.ticker)
+        self.pos_list = await self.broker.get_position_by_ticker(ticker=self.ticker, account_no=self.account_no)
 
         if len(self.pos_list) == 0:
             self.is_position = False
@@ -75,21 +77,12 @@ class IBORB(Strategy):
 
         # FILTER OPTIONS
         data = TDData(api_key=self.tda_api)
-        contract_type = ""
-
-        if (self.direction == "Bullish" and self.option_action == "BUY") or \
-                (self.direction == "Bearish" and self.option_action == "SELL"):
-            contract_type = "CALL"
-
-        elif (self.direction == "Bullish" and self.option_action == "SELL") or \
-                (self.direction == "Bearish" and self.option_action == "BUY"):
-            contract_type = "PUT"
+        contract_type = "CALL" if self.direction == "Bullish" else "PUT"
 
         options_df = await data.get_historic_option_data(symbol=self.ticker,
-                                           contract_type=contract_type,
-                                           range=self.option_range,
-                                           days_forward=10,
-                                           )
+                                                         contract_type=contract_type,
+                                                         range=self.option_range,
+                                                         days_forward=10)
 
         option_contract = filter_option_contract(direction=self.direction,
                                                    open_action=self.option_action,
@@ -99,7 +92,7 @@ class IBORB(Strategy):
                                                    option_expiry_days=self.option_expiry_days,
                                                    options_df=options_df)
 
-        self.lastTradeDateOrContractMonth = option_contract["lastTradeDateOrContractMonth"]
+        self.lastTradeDateOrContractMonth = datetime.strptime(option_contract["lastTradeDateOrContractMonth"], '%Y%m%d')
         self.strike = option_contract["strike"]
         self.right = option_contract["right"]
         self.ask = option_contract["ask"]
@@ -129,57 +122,21 @@ class IBORB(Strategy):
 
         # Contract
         self.stock_contract = await self.broker.get_stock_contract(self.ticker, self.exchange, self.currency, self.primary_exchange)
-        self.option_contract = await self.broker.get_options_contract(
-                                                                      self.ticker,
-                                                                      self.lastTradeDateOrContractMonth,
-                                                                      self.strike,
-                                                                      self.right,
-                                                                      self.exchange,
-                                                                      self.multiplier,
-                                                                      self.currency)
+        self.option_contract = await self.broker.get_options_contract(symbol=self.ticker,
+                                                                      expiry_date=self.lastTradeDateOrContractMonth.day,
+                                                                      expiry_month=self.lastTradeDateOrContractMonth.month,
+                                                                      expiry_year=self.lastTradeDateOrContractMonth.year,
+                                                                      strike=self.strike,
+                                                                      right=self.right,
+                                                                      exchange=self.exchange,
+                                                                      multiplier=self.multiplier,
+                                                                      currency=self.currency)
 
         # Prepare Orders
         self.x = True if self.direction == "Bullish" else False
         self.y = False if self.direction == "Bullish" else True
 
     async def send_orders(self):
-        # # TRAILING STOP
-        # entry_order = await self.broker.get_trailing_stop_limit_order(action=self.open_action,
-        #                                                  quantity=self.quantity,
-        #                                                 trail_type="PERCENTAGE",
-        #                                                 trail_amount=2,
-        #                                                   trail_stop=0.25,
-        #                                                 trail_limit=0.5,
-        #                                                 #   limit_price_offset=0,
-        #                                                  duration="GTD",
-        #                                                  good_till_date=(self.gtd + timedelta(minutes=-30)).strftime('%Y%m%d %H:%M:%S'),
-        #                                                  account_no=self.account_no,
-        #                                                  transmit=False,
-        #                                                   sec_type="",
-        #                                                   symbol="")
-        # entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
-
-        # OCO ORDERS
-        # order_1 = await self.broker.get_stop_order(action=self.open_action, stop_price=2, quantity=self.quantity, transmit=True, sec_type="", symbol="")
-        # order_2 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=True, sec_type="", symbol="")
-        # orders = [order_1, order_2]
-        # entry_order = await self.broker.get_oco_order(orders, "test_group", "CANCEL")
-        # for i in range(0, len(orders)):
-        #     await self.broker.send_order(self.option_contract[0], entry_order[i])
-
-        # # OTO ORDERS
-        # order_1 = await self.broker.get_market_order(action=self.open_action, quantity=self.quantity, transmit=False, sec_type="", symbol="")
-        # entry_trade = await self.broker.send_order(self.option_contract[0], order_1)
-        #
-        # order_2 = await self.broker.get_stop_order(action=self.close_action, quantity=self.quantity, stop_price=1, transmit=False, sec_type="", symbol="")
-        # order_3 = await self.broker.get_limit_order(action=self.close_action, quantity=self.quantity, limit_price=5.00, transmit=True, sec_type="", symbol="")
-
-        # orders = [order_2, order_3]
-        # entry_order = await self.broker.get_oto_order(entry_trade, orders)
-        # for i in range(0, len(orders)):
-        #     await self.broker.send_order(self.option_contract[0], entry_order[i])
-
-        # 3 ORDERS (OTO, OCO --- ENTRY/SL/TP)
         entry_order = await self.broker.get_market_order(action=self.open_action,
                                                          quantity=self.quantity,
                                                          duration="GTD",
@@ -188,15 +145,14 @@ class IBORB(Strategy):
                                                          transmit=False,
                                                          sec_type="",
                                                          symbol="")
-        p_cond = await self.broker.get_price_condition(
-                                                 conjunction='o',
+        p_cond = await self.broker.get_price_condition(conjunction='o',
                                                  is_more=self.y,
                                                  price=self.stock_entry,
                                                  contract_id=self.stock_contract[0].conId,
                                                  exchange="SMART",
                                                  trigger_method="DEFAULT")
         entry_order.conditions = [p_cond]
-        entry_trade = await self.broker.send_order(self.option_contract[0], entry_order)
+        entry_trade = await self.broker.send_order(contract=self.option_contract[0], account_no=self.account_no, order=entry_order)
 
         sl_order = await self.broker.get_market_order(action=self.close_action,
                                                       quantity=self.quantity,
@@ -205,15 +161,14 @@ class IBORB(Strategy):
                                                       transmit=False,
                                                       sec_type="",
                                                       symbol="")
-        p_cond = await self.broker.get_price_condition(
-                                                 conjunction='o',
+        p_cond = await self.broker.get_price_condition(conjunction='o',
                                                  is_more=self.y,
                                                  price=self.stock_sl,
                                                  contract_id=self.stock_contract[0].conId,
                                                  exchange="SMART",
                                                 trigger_method="DEFAULT")
         sl_order.conditions = [p_cond]
-        await self.broker.send_order(self.option_contract[0], sl_order)
+        await self.broker.send_order(contract=self.option_contract[0], account_no=self.account_no, order=sl_order)
 
         tp_order = await self.broker.get_market_order(action=self.close_action,
                                                       quantity=self.quantity,
@@ -222,19 +177,17 @@ class IBORB(Strategy):
                                                       transmit=True,
                                                       sec_type="",
                                                       symbol="")
-        p_cond = await self.broker.get_price_condition(
-                                                 conjunction='o',
+        p_cond = await self.broker.get_price_condition(conjunction='o',
                                                  is_more=self.x,
                                                  price=self.tp1,
                                                  contract_id=self.stock_contract[0].conId,
                                                  exchange="SMART",
                                                  trigger_method="DEFAULT")
-        t_cond = await self.broker.get_time_condition(
-                                                conjunction='o',
+        t_cond = await self.broker.get_time_condition(conjunction='o',
                                                 is_more=True,
                                                 time=(self.gtd + timedelta(minutes=-5)).strftime('%Y%m%d %H:%M:%S'))
         tp_order.conditions = [p_cond, t_cond]
-        await self.broker.send_order(self.option_contract[0], tp_order)
+        await self.broker.send_order(contract=self.option_contract[0], account_no=self.account_no, order=tp_order)
 
     async def start(self):
         await self.connect_broker()
