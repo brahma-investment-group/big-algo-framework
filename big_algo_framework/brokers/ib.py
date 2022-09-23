@@ -7,15 +7,41 @@ class IB(Broker, ib_insync.IB):
         ib_insync.IB.__init__(self)
 
     # Asset
-    async def get_stock_contract(self, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
+    async def get_stock_contract(self, symbol: str = '', exchange: str = 'SMART', currency: str = '', primaryExchange: str = ''):
+        """
+            Returns a stock contract.
+
+            :param symbol: The symbol.
+            :param exchange: The exchange at which the contract is being traded.
+            :param currency: The currency for the contract.
+            :param primaryExchange: The primary exchange for the contract.
+        """
+
         stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
         return await self.qualifyContractsAsync(stock_contract)
 
-    async def get_options_contract(self, symbol: str = '', expiration_date: str = '', strike: float = 0.0,
-                                   right: str = '', exchange: str = '', multiplier: str = '100', currency: str = ''):
+    async def get_options_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '',
+                                   expiry_year: int = '', strike: float = 0.0, right: str = '', exchange: str = 'SMART',
+                                   multiplier: str = '100', currency: str = ''):
+        """
+            Returns an option contract.
+
+            :param symbol: The symbol.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param strike: The strike price.
+            :param right: The right of the option. Possible options are "C", "P"
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        expiration_date = str(expiry_year).zfill(2) + str(expiry_month).zfill(2) + str(expiry_date).zfill(2)
         option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=expiration_date,
                                            strike=strike, right=right, exchange=exchange, multiplier=multiplier,
                                            currency=currency)
+
         return await self.qualifyContractsAsync(option_contract)
 
     # Prepare/Send Orders
@@ -563,25 +589,40 @@ class IB(Broker, ib_insync.IB):
             await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
 
     # Complex Option Contracts
-    async def get_long_call_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
-                                                     itm_strike: float = 0.0, otm_strike: float = 0.0,
-                                                     exchange: str = '', multiplier: str = '100', currency: str = ''):
+    async def get_long_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
         """
             Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
             :param symbol: The symbol.
-            :param expiration_date: The expiration date for the contract. Format: #YYYYMMDD.
-            :param itm_strike: In-The-Money strike price. Usually lower than the current market price.
-            :param otm_strike: Out-The-Money strike price. Usually greater than the current market price.
-            :param exchange: The exchange on which the order should be submitted. Possible values are "SMART" or any other valid exchange.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
             :param multiplier: The multiplier for the option price. Default value is 100.
-            :param currency: IThe currency for the contract.
+            :param currency: The currency for the contract.
         """
 
-        itm_call = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=itm_strike,
-                                                   right='C', exchange=exchange, multiplier=multiplier, currency=currency)
-        otm_call = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=otm_strike,
-                                                   right='C', exchange=exchange, multiplier=multiplier, currency=currency)
+        low_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='C',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='C',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
 
         contract = ib_insync.Contract()
         contract.symbol = symbol
@@ -590,16 +631,16 @@ class IB(Broker, ib_insync.IB):
         contract.exchange = exchange
 
         leg1 = ib_insync.ComboLeg()
-        leg1.conId = itm_call[0].conId
+        leg1.conId = low_strike_call[0].conId
         leg1.ratio = 1
         leg1.action = "BUY"
-        leg1.exchange = itm_call[0].exchange
+        leg1.exchange = low_strike_call[0].exchange
 
         leg2 = ib_insync.ComboLeg()
-        leg2.conId = otm_call[0].conId
+        leg2.conId = high_strike_call[0].conId
         leg2.ratio = 1
         leg2.action = "SELL"
-        leg2.exchange = otm_call[0].exchange
+        leg2.exchange = high_strike_call[0].exchange
 
         contract.comboLegs = []
         contract.comboLegs.append(leg1)
@@ -607,25 +648,40 @@ class IB(Broker, ib_insync.IB):
 
         return contract
 
-    async def get_long_put_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
-                                                    itm_strike: float = 0.0, otm_strike: float = 0.0,
-                                                    exchange: str = '', multiplier: str = '100', currency: str = ''):
+    async def get_short_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
         """
-            Returns a long put vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+            Returns a short call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
             :param symbol: The symbol.
-            :param expiration_date: The expiration date for the contract. Format: #YYYYMMDD.
-            :param itm_strike: In-The-Money strike price. Usually greater than the current market price.
-            :param otm_strike: Out-The-Money strike price. Usually lower than the current market price.
-            :param exchange: The exchange on which the order should be submitted. Possible values are "SMART" or any other valid exchange.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
             :param multiplier: The multiplier for the option price. Default value is 100.
-            :param currency: IThe currency for the contract.
+            :param currency: The currency for the contract.
         """
 
-        itm_put = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=itm_strike,
-                                                   right='P', exchange=exchange, multiplier=multiplier, currency=currency)
-        otm_put = await self.get_options_contract(symbol=symbol, expiration_date=expiration_date, strike=otm_strike,
-                                                   right='P', exchange=exchange, multiplier=multiplier, currency=currency)
+        low_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='C',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='C',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
 
         contract = ib_insync.Contract()
         contract.symbol = symbol
@@ -634,16 +690,134 @@ class IB(Broker, ib_insync.IB):
         contract.exchange = exchange
 
         leg1 = ib_insync.ComboLeg()
-        leg1.conId = itm_put[0].conId
+        leg1.conId = high_strike_call[0].conId
         leg1.ratio = 1
         leg1.action = "BUY"
-        leg1.exchange = itm_put[0].exchange
+        leg1.exchange = high_strike_call[0].exchange
 
         leg2 = ib_insync.ComboLeg()
-        leg2.conId = otm_put[0].conId
+        leg2.conId = low_strike_call[0].conId
         leg2.ratio = 1
         leg2.action = "SELL"
-        leg2.exchange = otm_put[0].exchange
+        leg2.exchange = low_strike_call[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    async def get_long_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='P',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='P',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = high_strike_put[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = high_strike_put[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = low_strike_put[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = low_strike_put[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    async def get_short_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='P',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='P',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = low_strike_put[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = low_strike_put[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = high_strike_put[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = high_strike_put[0].exchange
 
         contract.comboLegs = []
         contract.comboLegs.append(leg1)

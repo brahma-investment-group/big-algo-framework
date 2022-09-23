@@ -16,14 +16,37 @@ class TDA(Broker):
                 self.c = client_from_login_flow(driver, api_key, redirect_uri, token_path)
 
     # Asset
-    async def get_stock_contract(self, symbol: str = '', exchange: str = '', currency: str = '', primaryExchange: str = ''):
+    async def get_stock_contract(self, symbol: str = '', exchange: str = 'SMART', currency: str = '', primaryExchange: str = ''):
+        """
+            Returns a stock contract.
+
+            :param symbol: The symbol.
+            :param exchange: Not used.
+            :param currency: Not used.
+            :param primaryExchange: Not used.
+        """
+
         stock_contract = symbol
 
         return stock_contract
 
     async def get_options_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '' ,
-                                   expiry_year: int = '', strike: float = 0.0, right: str = '', exchange: str = '',
+                                   expiry_year: int = '', strike: float = 0.0, right: str = '', exchange: str = 'SMART',
                                    multiplier: str = '100', currency: str = ''):
+        """
+            Returns an option contract.
+
+            :param symbol: The symbol.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param strike: The strike price.
+            :param right: The right of the option. Possible options are "C", "P"
+            :param exchange: Not used.
+            :param multiplier: Not used.
+            :param currency: Not used.
+        """
+
         option_contract = build_option_symbol(symbol, date(expiry_year, expiry_month, expiry_date), right, strike, _format='tda')
 
         return option_contract
@@ -539,17 +562,245 @@ class TDA(Broker):
             await self.send_order('', account_no, order)
 
     # Complex Option Contracts
-    async def get_long_call_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
-                                                     itm_strike: float = 0.0, otm_strike: float = 0.0,
-                                                     exchange: str = '', multiplier: str = '100',
+    async def get_long_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int, expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
                                                      currency: str = ''):
-        pass
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-    async def get_long_put_vertical_spread_contract(self, symbol: str = '', expiration_date: str = '',
-                                                    itm_strike: float = 0.0, otm_strike: float = 0.0,
-                                                    exchange: str = '', multiplier: str = '100',
-                                                    currency: str = ''):
-        pass
+            :param symbol: The symbol.
+            :param quantity: The quantity/amount.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: The order type for the spread. Possible values are: "NET_DEBIT", "NET_CREDIT", "NET_ZERO", "MARKET"
+            :param order_price: The price for the spread. 0 for "NET_ZERO", '' for "MARKET"
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
+            :param exchange: Not used.
+            :param multiplier: Not used.
+            :param currency: Not used.
+        """
+
+        low_strike_call = await self.get_options_contract(symbol=symbol,
+                                                          expiry_date=expiry_date,
+                                                          expiry_month=expiry_month,
+                                                          expiry_year=expiry_year,
+                                                          strike=low_strike,
+                                                          right='C')
+
+        high_strike_call = await self.get_options_contract(symbol=symbol,
+                                                           expiry_date=expiry_date,
+                                                           expiry_month=expiry_month,
+                                                           expiry_year=expiry_year,
+                                                           strike=high_strike,
+                                                           right='C')
+
+        order = OrderBuilder(enforce_enums=False) \
+            .set_complex_order_strategy_type('VERTICAL') \
+            .set_order_strategy_type('SINGLE') \
+            .set_session(session.upper()) \
+            .set_duration(duration.upper()) \
+            .set_order_type(order_type) \
+            .set_price(order_price)
+
+        if instruction.upper() == "OPEN":
+            order = order\
+                .add_option_leg('BUY_TO_OPEN', low_strike_call, quantity) \
+                .add_option_leg('SELL_TO_OPEN', high_strike_call, quantity)
+
+        elif instruction.upper() == "CLOSE":
+            order = order\
+                .add_option_leg('SELL_TO_CLOSE', low_strike_call, quantity) \
+                .add_option_leg('BUY_TO_CLOSE', high_strike_call, quantity)
+
+        return order
+
+    async def get_short_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int, expiry_month: int,
+                                                      expiry_year: int, low_strike: float, high_strike: float,
+                                                      order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                      instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                      duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                      currency: str = ''):
+        """
+            Returns a short call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: The quantity/amount.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: The order type for the spread. Possible values are: "NET_DEBIT", "NET_CREDIT", "NET_ZERO", "MARKET"
+            :param order_price: The price for the spread. 0 for "NET_ZERO", '' for "MARKET"
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
+            :param exchange: Not used.
+            :param multiplier: Not used.
+            :param currency: Not used.
+        """
+
+        low_strike_call = await self.get_options_contract(symbol=symbol,
+                                                          expiry_date=expiry_date,
+                                                          expiry_month=expiry_month,
+                                                          expiry_year=expiry_year,
+                                                          strike=low_strike,
+                                                          right='C')
+
+        high_strike_call = await self.get_options_contract(symbol=symbol,
+                                                           expiry_date=expiry_date,
+                                                           expiry_month=expiry_month,
+                                                           expiry_year=expiry_year,
+                                                           strike=high_strike,
+                                                           right='C')
+
+        order = OrderBuilder(enforce_enums=False) \
+            .set_complex_order_strategy_type('VERTICAL') \
+            .set_order_strategy_type('SINGLE') \
+            .set_session(session.upper()) \
+            .set_duration(duration.upper()) \
+            .set_order_type(order_type) \
+            .set_price(order_price)
+
+        if instruction.upper() == "OPEN":
+            order = order \
+                .add_option_leg('BUY_TO_OPEN', high_strike_call, quantity) \
+                .add_option_leg('SELL_TO_OPEN', low_strike_call, quantity)
+
+        elif instruction.upper() == "CLOSE":
+            order = order \
+                .add_option_leg('SELL_TO_CLOSE', high_strike_call, quantity) \
+                .add_option_leg('BUY_TO_CLOSE', low_strike_call, quantity)
+
+        return order
+
+    async def get_long_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int, expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long put vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: The quantity/amount.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: The order type for the spread. Possible values are: "NET_DEBIT", "NET_CREDIT", "NET_ZERO", "MARKET"
+            :param order_price: The price for the spread. 0 for "NET_ZERO", '' for "MARKET"
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
+            :param exchange: Not used.
+            :param multiplier: Not used.
+            :param currency: Not used.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol,
+                                                          expiry_date=expiry_date,
+                                                          expiry_month=expiry_month,
+                                                          expiry_year=expiry_year,
+                                                          strike=low_strike,
+                                                          right='P')
+
+        high_strike_put = await self.get_options_contract(symbol=symbol,
+                                                           expiry_date=expiry_date,
+                                                           expiry_month=expiry_month,
+                                                           expiry_year=expiry_year,
+                                                           strike=high_strike,
+                                                           right='P')
+
+        order = OrderBuilder(enforce_enums=False) \
+            .set_complex_order_strategy_type('VERTICAL') \
+            .set_order_strategy_type('SINGLE') \
+            .set_session(session.upper()) \
+            .set_duration(duration.upper()) \
+            .set_order_type(order_type) \
+            .set_price(order_price)
+
+        if instruction.upper() == "OPEN":
+            order = order\
+                .add_option_leg('BUY_TO_OPEN', high_strike_put, quantity) \
+                .add_option_leg('SELL_TO_OPEN', low_strike_put, quantity)
+
+        elif instruction.upper() == "CLOSE":
+            order = order\
+                .add_option_leg('SELL_TO_CLOSE', high_strike_put, quantity) \
+                .add_option_leg('BUY_TO_CLOSE', low_strike_put, quantity)
+
+        return order
+
+    async def get_short_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int, expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a short put vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: The quantity/amount.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: The order type for the spread. Possible values are: "NET_DEBIT", "NET_CREDIT", "NET_ZERO", "MARKET"
+            :param order_price: The price for the spread. 0 for "NET_ZERO", '' for "MARKET"
+            :param instruction: Whether to open or close a trade. Used for options. Possible values are "OPEN", "CLOSE".
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK".
+            :param exchange: Not used.
+            :param multiplier: Not used.
+            :param currency: Not used.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol,
+                                                          expiry_date=expiry_date,
+                                                          expiry_month=expiry_month,
+                                                          expiry_year=expiry_year,
+                                                          strike=low_strike,
+                                                          right='P')
+
+        high_strike_put = await self.get_options_contract(symbol=symbol,
+                                                           expiry_date=expiry_date,
+                                                           expiry_month=expiry_month,
+                                                           expiry_year=expiry_year,
+                                                           strike=high_strike,
+                                                           right='P')
+
+        order = OrderBuilder(enforce_enums=False) \
+            .set_complex_order_strategy_type('VERTICAL') \
+            .set_order_strategy_type('SINGLE') \
+            .set_session(session.upper()) \
+            .set_duration(duration.upper()) \
+            .set_order_type(order_type) \
+            .set_price(order_price)
+
+        if instruction.upper() == "OPEN":
+            order = order\
+                .add_option_leg('BUY_TO_OPEN', low_strike_put, quantity) \
+                .add_option_leg('SELL_TO_OPEN', high_strike_put, quantity)
+
+        elif instruction.upper() == "CLOSE":
+            order = order\
+                .add_option_leg('SELL_TO_CLOSE', low_strike_put, quantity) \
+                .add_option_leg('BUY_TO_CLOSE', high_strike_put, quantity)
+
+        return order
 
     # Account Information
     async def get_account(self):

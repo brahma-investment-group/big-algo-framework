@@ -3,11 +3,12 @@ from big_algo_framework.brokers.td import TDA
 from big_algo_framework.big.options import filter_option_contract
 import pandas as pd
 import asyncio
+import config
 
-api_key = ""
+api_key = config.td_account["api_key"]
 ticker = "SPY"
-broker = TDA(token_path='', api_key=api_key, redirect_uri='', chromedriver_path='')
-account_no = 0
+broker = TDA(token_path=config.td_account["token_path"], api_key=api_key, redirect_uri=config.td_account["redirect_uri"], chromedriver_path=config.td_account["chromedriver_path"])
+account_no = config.td_account["account_no"]
 
 async def get_option_data():
     # FETCH STOCK DATA
@@ -35,8 +36,11 @@ async def get_option_data():
 
 async def mkt_order():
     # MKT ORDER
-    order = await broker.get_market_order(symbol=ticker, quantity=1, sec_type="OPT", action='BUY', session='NORMAL', duration='DAY')
-    await broker.send_order(account_no=account_no, order=order)
+    opt_symbol = await broker.get_options_contract(symbol=ticker, expiry_date=23, expiry_month=9, expiry_year=2022,
+                                                   strike=370, right= 'C')
+    print(opt_symbol)
+    order = await broker.get_market_order(symbol=opt_symbol, quantity=1, sec_type="OPT", action='BUY', session='NORMAL', duration='DAY')
+    await broker.send_order(account_no=account_no, order=order, contract='')
 
 async def stp_lmt_order():
     # STOP LIMIT ORDER
@@ -95,15 +99,36 @@ async def oco_order():
     order = await broker.get_oco_order(order1, order2)
     await broker.send_order(account_no=account_no, order=order)
 
+async def get_all_orders():
+    print(await broker.get_all_orders(account_no=account_no))
+
+async def get_vertical_order():
+    order = await broker.get_short_call_vertical_spread_contract(symbol=ticker,
+                                                                expiry_date=23,
+                                                                expiry_month=9,
+                                                                expiry_year=2022,
+                                                                low_strike=370,
+                                                                high_strike=375,
+                                                                instruction="OPEN",
+                                                                order_type= "NET_CREDIT",
+                                                                order_price= 1.20,
+                                                                 quantity=5)
+    await broker.send_order(account_no=account_no, order=order, contract='')
+
+
 if __name__ == "__main__":
-    asyncio.run(get_option_data())
-    asyncio.run(mkt_order())
-    asyncio.run(stp_lmt_order())
-    asyncio.run(lmt_order())
-    asyncio.run(stp_order())
-    asyncio.run(trailing_stp_percentage_order())
-    asyncio.run(trailing_stp_amount_order())
-    asyncio.run(trailing_stp_lmt_percentage_order())
-    asyncio.run(trailing_stp_lmt_amount_order())
-    asyncio.run(oto_order())
-    asyncio.run(oco_order())
+    # asyncio.run(get_option_data())
+    # asyncio.run(mkt_order())
+    # asyncio.run(stp_lmt_order())
+    # asyncio.run(lmt_order())
+    # asyncio.run(stp_order())
+    # asyncio.run(trailing_stp_percentage_order())
+    # asyncio.run(trailing_stp_amount_order())
+    # asyncio.run(trailing_stp_lmt_percentage_order())
+    # asyncio.run(trailing_stp_lmt_amount_order())
+    # asyncio.run(oto_order())
+    # asyncio.run(oco_order())
+    # asyncio.run(get_all_orders())
+    asyncio.run(get_vertical_order())
+
+
