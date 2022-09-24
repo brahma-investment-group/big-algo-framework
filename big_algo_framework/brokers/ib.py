@@ -44,6 +44,30 @@ class IB(Broker, ib_insync.IB):
 
         return await self.qualifyContractsAsync(option_contract)
 
+    async def get_futures_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '',
+                                   expiry_year: int = '', exchange: str = 'SMART', local_symbol: str = '',
+                                   multiplier: str = '100', currency: str = ''):
+
+        """
+            Returns a future contract.
+
+            :param symbol: The symbol.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param exchange: The exchange at which the contract is being traded.
+            :param local_symbol: The contract's symbol within its primary exchange.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        expiration_date = str(expiry_year).zfill(2) + str(expiry_month).zfill(2) + str(expiry_date).zfill(2)
+        future_contract = ib_insync.Future(symbol=symbol, lastTradeDateOrContractMonth=expiration_date,
+                                           exchange=exchange, localSymbol=local_symbol, multiplier=multiplier,
+                                           currency=currency)
+
+        return await self.qualifyContractsAsync(future_contract)
+
     # Prepare/Send Orders
     async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY', instruction: str = 'OPEN',
                                session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
