@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 def filter_option_contract(direction, open_action, option_range, option_strikes, stock_price, option_expiry_days, options_df):
-    if direction == "Bullish" and open_action == "BUY":
+    if direction == "BULLISH" and open_action == "BUY":
         if option_range == "OTM":
             df = options_df.loc[(options_df['strikePrice'] >= stock_price) & (options_df['daysToExpiration'] >= option_expiry_days)]
         elif option_range == "ITM":
@@ -22,7 +22,7 @@ def filter_option_contract(direction, open_action, option_range, option_strikes,
 
         return filtered_options
 
-    elif direction == "Bullish" and open_action == "SELL":
+    elif direction == "BULLISH" and open_action == "SELL":
         if option_range == "OTM":
             df = options_df.loc[(options_df['strikePrice'] <= stock_price) & (options_df['daysToExpiration'] >= option_expiry_days)]
         elif option_range == "ITM":
@@ -42,7 +42,7 @@ def filter_option_contract(direction, open_action, option_range, option_strikes,
 
         return filtered_options
 
-    elif direction == "Bearish" and open_action == "BUY":
+    elif direction == "BEARISH" and open_action == "BUY":
         if option_range == "OTM":
             df = options_df.loc[(options_df['strikePrice'] <= stock_price) & (options_df['daysToExpiration'] >= option_expiry_days)]
         elif option_range == "ITM":
@@ -62,7 +62,7 @@ def filter_option_contract(direction, open_action, option_range, option_strikes,
 
         return filtered_options
 
-    elif direction == "Bearish" and open_action == "SELL":
+    elif direction == "BEARISH" and open_action == "SELL":
         if option_range == "OTM":
             df = options_df.loc[(options_df['strikePrice'] >= stock_price) & (options_df['daysToExpiration'] >= option_expiry_days)]
         elif option_range == "ITM":

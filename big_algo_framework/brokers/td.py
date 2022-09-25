@@ -75,10 +75,16 @@ class TDA(Broker):
             :param transmit: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('MARKET') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_strategy_type('SINGLE')
 
         if sec_type == "STK":
@@ -116,10 +122,16 @@ class TDA(Broker):
             :param transmit: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('STOP_LIMIT') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_strategy_type('SINGLE') \
             .set_stop_price(truncate(stop_price, digits)) \
             .set_price(truncate(limit_price, digits)) \
@@ -157,10 +169,16 @@ class TDA(Broker):
             :param transmit: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('LIMIT') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_strategy_type('SINGLE') \
             .set_price(truncate(limit_price, digits)) \
 
@@ -198,10 +216,16 @@ class TDA(Broker):
             :param transmit: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('STOP') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_strategy_type('SINGLE') \
             .set_stop_price(truncate(stop_price, digits)) \
             .set_stop_type(trigger_method.upper())
@@ -246,6 +270,7 @@ class TDA(Broker):
             :param transmit: Not used.
         """
 
+
         if str.upper(trail_type) == "AMOUNT":
             trail_type = "VALUE"
             if float(trail_amount) < 0:
@@ -256,10 +281,16 @@ class TDA(Broker):
             if float(trail_amount) < 1 or float(trail_amount) > 99:
                 raise ValueError('The trail amount must be between 1 to 99')
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('TRAILING_STOP') \
             .set_quantity(quantity) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_session(session.upper()) \
             .set_order_strategy_type('SINGLE') \
             .set_stop_price_link_basis(stop_price_link_basis.upper()) \
@@ -320,10 +351,16 @@ class TDA(Broker):
             if float(trail_amount) < 1 or float(trail_amount) > 99:
                 raise ValueError('The trail amount must be between 1 to 99')
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         order = OrderBuilder(enforce_enums=False) \
             .set_order_type('TRAILING_STOP_LIMIT') \
             .set_quantity(quantity) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_session(session.upper()) \
             .set_order_strategy_type('SINGLE') \
             .set_stop_price_link_basis(stop_price_link_basis.upper()) \
@@ -588,6 +625,12 @@ class TDA(Broker):
             :param currency: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         low_strike_call = await self.get_options_contract(symbol=symbol,
                                                           expiry_date=expiry_date,
                                                           expiry_month=expiry_month,
@@ -606,7 +649,7 @@ class TDA(Broker):
             .set_complex_order_strategy_type('VERTICAL') \
             .set_order_strategy_type('SINGLE') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_type(order_type) \
             .set_price(order_price)
 
@@ -648,6 +691,12 @@ class TDA(Broker):
             :param currency: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         low_strike_call = await self.get_options_contract(symbol=symbol,
                                                           expiry_date=expiry_date,
                                                           expiry_month=expiry_month,
@@ -666,7 +715,7 @@ class TDA(Broker):
             .set_complex_order_strategy_type('VERTICAL') \
             .set_order_strategy_type('SINGLE') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_type(order_type) \
             .set_price(order_price)
 
@@ -708,6 +757,12 @@ class TDA(Broker):
             :param currency: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         low_strike_put = await self.get_options_contract(symbol=symbol,
                                                           expiry_date=expiry_date,
                                                           expiry_month=expiry_month,
@@ -726,7 +781,7 @@ class TDA(Broker):
             .set_complex_order_strategy_type('VERTICAL') \
             .set_order_strategy_type('SINGLE') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_type(order_type) \
             .set_price(order_price)
 
@@ -768,6 +823,12 @@ class TDA(Broker):
             :param currency: Not used.
         """
 
+        duration_dict = {
+            "DAY": "DAY",
+            "GTC": "GOOD_TILL_CANCEL",
+            "FOK": "FILL_OR_KILL"
+        }
+
         low_strike_put = await self.get_options_contract(symbol=symbol,
                                                           expiry_date=expiry_date,
                                                           expiry_month=expiry_month,
@@ -786,7 +847,7 @@ class TDA(Broker):
             .set_complex_order_strategy_type('VERTICAL') \
             .set_order_strategy_type('SINGLE') \
             .set_session(session.upper()) \
-            .set_duration(duration.upper()) \
+            .set_duration(duration_dict[duration.upper()]) \
             .set_order_type(order_type) \
             .set_price(order_price)
 
