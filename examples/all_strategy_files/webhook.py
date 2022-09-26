@@ -2,9 +2,9 @@ import asyncio
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from examples.ibinsync.read_queue import run_ib_orb
+from examples.ib.read_queue import run_ib_orb
 from big_algo_framework.big.social_media import SocialMedia
-from examples.ibinsync import config
+from examples.ib import config
 
 loop = asyncio.get_event_loop()
 ib_orb_queue = asyncio.Queue()

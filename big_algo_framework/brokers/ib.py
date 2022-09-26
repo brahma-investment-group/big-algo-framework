@@ -475,11 +475,11 @@ class IB(Broker, ib_insync.IB):
         return self.placeOrder(contract, order)
 
     # Get Orders/Positions
-    async def get_order_by_ticker(self, ticker: str, account_no: str):
+    async def get_order_by_symbol(self, symbol: str, account_no: str):
         """
-            Returns a list of open orders for the given ticker
+            Returns a list of open orders for the given symbol
 
-            :param ticker: The ticker for which to get the open orders.
+            :param symbol: The ticksymboler for which to get the open orders.
             :param account_no: Not used.
         """
 
@@ -487,7 +487,7 @@ class IB(Broker, ib_insync.IB):
         all_orders = await self.get_all_orders(account_no='')
 
         for trades in all_orders:
-            if trades.contract.symbol == ticker:
+            if trades.contract.symbol == symbol:
                 orders_list.append(trades)
 
         return orders_list
@@ -508,11 +508,11 @@ class IB(Broker, ib_insync.IB):
 
         return orders_list
 
-    async def get_position_by_ticker(self, ticker: str, account_no: str):
+    async def get_position_by_symbol(self, symbol: str, account_no: str):
         """
-            Returns a list of open positions for the given ticker
+            Returns a list of open positions for the given symbol
 
-            :param ticker: The ticker for which to get the open positions.
+            :param symbol: The symbol for which to get the open positions.
             :param account_no: Not used.
         """
 
@@ -520,7 +520,7 @@ class IB(Broker, ib_insync.IB):
         all_pos = await self.get_all_positions(account_no='')
 
         for pos in all_pos:
-            if pos.contract.symbol == ticker:
+            if pos.contract.symbol == symbol:
                 pos_list.append(pos)
 
         return pos_list
@@ -673,8 +673,7 @@ class IB(Broker, ib_insync.IB):
         return contract
 
     async def get_short_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
-                                                     expiry_month: int,
-                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     expiry_month: int, expiry_year: int, low_strike: float, high_strike: float,
                                                      order_type: str = 'NET_CREDIT', order_price: float = '',
                                                      instruction: str = 'OPEN', session: str = 'NORMAL',
                                                      duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
@@ -850,9 +849,11 @@ class IB(Broker, ib_insync.IB):
         return contract
 
     # Account Information
-    async def get_account(self):
+    async def get_account(self, account_no: str = ''):
         """
             Returns a dictionary with account summary details.
+
+            :param account_no: Not used.
         """
 
         account = {}

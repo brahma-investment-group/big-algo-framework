@@ -1,7 +1,7 @@
 import traceback
 import datetime
-from examples.ibinsync import config
-from examples.ibinsync.strategy import IBORB
+from examples.ib import config
+from examples.ib.strategy import IBORB
 
 async def run_ib_orb(ib_orb_queue):
     print("RUNNING ONLY ONCE!!!!!!!!!!!!!!!!")

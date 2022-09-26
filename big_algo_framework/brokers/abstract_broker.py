@@ -28,7 +28,13 @@ class Broker(ABC):
     @abstractmethod
     def get_trailing_stop_order(self, *kwargs):
         raise NotImplementedError(
-            "Each broker must implement the 'get_stop_order' method."
+            "Each broker must implement the 'get_trailing_stop_order' method."
+        )
+
+    @abstractmethod
+    def get_trailing_stop_limit_order(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_trailing_stop_limit_order' method."
         )
 
     @abstractmethod
@@ -50,7 +56,7 @@ class Broker(ABC):
         )
 
     @abstractmethod
-    def get_order_by_ticker(self, *kwargs):
+    def get_order_by_symbol(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'get_order' method."
         )
@@ -62,7 +68,7 @@ class Broker(ABC):
         )
 
     @abstractmethod
-    def get_position_by_ticker(self, *kwargs):
+    def get_position_by_symbol(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'get_position' method."
         )
@@ -95,6 +101,36 @@ class Broker(ABC):
     def close_all_positions(self, *kwargs):
         raise NotImplementedError(
             "Each broker must implement the 'close_all_positions' method."
+        )
+
+    @abstractmethod
+    def get_long_call_vertical_spread_contract(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_long_call_vertical_spread_contract' method."
+        )
+
+    @abstractmethod
+    def get_short_call_vertical_spread_contract(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_short_call_vertical_spread_contract' method."
+        )
+
+    @abstractmethod
+    def get_long_put_vertical_spread_contract(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_long_put_vertical_spread_contract' method."
+        )
+
+    @abstractmethod
+    def get_short_put_vertical_spread_contract(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_short_put_vertical_spread_contract' method."
+        )
+
+    @abstractmethod
+    def get_account(self, *kwargs):
+        raise NotImplementedError(
+            "Each broker must implement the 'get_account' method."
         )
 
 

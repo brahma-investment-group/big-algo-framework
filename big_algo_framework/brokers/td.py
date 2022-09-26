@@ -429,28 +429,24 @@ class TDA(Broker):
             print(f'exception in order: {str(exc)}')
 
     # Get Orders/Positions
-    async def get_order_by_ticker(self, ticker: str, account_no: str):
+    async def get_order_by_symbol(self, symbol: str, account_no: str):
         """
-            Returns a list of open orders for the given ticker
+            Returns a list of open orders for the given symbol
 
-            :param ticker: The ticker for which to get the open orders.
+            :param symbol: The symbol for which to get the open orders.
             :param account_no: The account number from which to get the orders.
         """
 
         all_orders = await self.get_all_orders(account_no)
         open_orders = []
 
-        for i in all_orders['securitiesAccount']['orderStrategies']:
-            open_status_list = ['AWAITING_PARENT_ORDER', 'AWAITING_CONDITION', 'AWAITING_MANUAL_REVIEW', 'ACCEPTED',
-                   'AWAITING_UR_OUT', 'PENDING_ACTIVATION', 'QUEUED', 'WORKING']
-
+        for i in all_orders:
             try:
-                symbol = i['orderLegCollection'][0]['instrument']['symbol']
-                underlying_symbol = symbol.split("_")
-                status = i['status']
+                ticker = i['orderLegCollection'][0]['instrument']['symbol']
+                underlying_ticker = ticker.split("_")
 
-                if underlying_symbol[0] == ticker and status in open_status_list:
-                    open_orders.append(i['orderLegCollection'][0])
+                if underlying_ticker[0] == symbol:
+                    open_orders.append(i)
             except:
                 print("ERROR in get_order_by_ticker()")
 
@@ -464,14 +460,29 @@ class TDA(Broker):
         """
 
         fields = self.c.Account.Fields('orders')
-        response = self.c.get_account(account_no, fields=fields)
-        return response.json()
+        all_orders = self.c.get_account(account_no, fields=fields)
+        all_open_orders = all_orders.json()
+        open_orders = []
 
-    async def get_position_by_ticker(self, ticker: str, account_no: str):
+        for i in all_open_orders['securitiesAccount']['orderStrategies']:
+            open_status_list = ['AWAITING_PARENT_ORDER', 'AWAITING_CONDITION', 'AWAITING_MANUAL_REVIEW', 'ACCEPTED',
+                                'AWAITING_UR_OUT', 'PENDING_ACTIVATION', 'QUEUED', 'WORKING']
+
+            try:
+                status = i['status']
+                if status in open_status_list:
+                    open_orders.append(i)
+
+            except:
+                print("ERROR in get_all_orders()")
+
+        return open_orders
+
+    async def get_position_by_symbol(self, symbol: str, account_no: str):
         """
-            Returns a list of open positions for the given ticker
+            Returns a list of open positions for the given symbol
 
-            :param ticker: The ticker for which to get the open positions.
+            :param symbol: The symbol for which to get the open positions.
             :param account_no: The account number from which to get the orders.
         """
 
@@ -480,11 +491,11 @@ class TDA(Broker):
 
         for i in all_positions['securitiesAccount']['positions']:
             try:
-                symbol = i['instrument']['symbol']
-                underlying_symbol = symbol.split("_")
+                ticker = i['instrument']['symbol']
+                underlying_ticker = ticker.split("_")
 
-                if underlying_symbol[0] == ticker:
-                    open_positions.append(i['instrument'])
+                if underlying_ticker[0] == symbol:
+                    open_positions.append(i)
 
             except:
                 print("ERROR in get_position_by_ticker()")
@@ -521,10 +532,9 @@ class TDA(Broker):
         """
 
         open_orders = await self.get_all_orders(account_no)
-        orders = open_orders["securitiesAccount"]["orderStrategies"]
 
-        for i in range(0, len(orders)):
-            order_id = orders[i]["orderId"]
+        for i in range(0, len(open_orders)):
+            order_id = open_orders[i]["orderId"]
             await self.cancel_order(order_id, account_no)
 
     async def close_position(self, account_no, symbol: str):
@@ -864,5 +874,13 @@ class TDA(Broker):
         return order
 
     # Account Information
-    async def get_account(self):
-        pass
+    async def get_account(self, account_no: str = ''):
+        """
+            Returns a dictionary with account summary details.
+
+            :param account_no: The account number from which to get the account details.
+        """
+
+        all_orders = self.c.get_account(account_no, fields=None)
+
+        return all_orders.json()
