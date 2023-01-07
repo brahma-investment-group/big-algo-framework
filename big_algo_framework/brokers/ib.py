@@ -1,423 +1,873 @@
 from big_algo_framework.brokers.abstract_broker import Broker
 from big_algo_framework.big.helper import truncate
-import time
-import threading
-from sqlalchemy import text
-import pandas as pd
-from ibapi.order import Order
-from ibapi.client import EClient
-from ibapi.wrapper import EWrapper
-from ibapi.contract import Contract
-from ibapi.order_condition import PriceCondition
-from ibapi.account_summary_tags import AccountSummaryTags
+import ib_insync
 
-class IB(Broker, EWrapper, EClient):
+class IB(Broker, ib_insync.IB):
     def __init__(self):
-        EClient.__init__(self, self)
-        self.orderId = 0
-        self.acc_dict = {}
-
-    # Authentication
-    def init_client(self, client, order_dict):
-        self.client = client
-        self.orders_table = order_dict['orders_table']
-        self.db = order_dict['db']
-
-    def websocket_con(self, broker):
-        broker.run()
-
-    def connect_broker(self, broker, ip_address, port, ib_client):
-        # Connects to interactive brokers with the specified port/client and returns the last order ID.
-        broker.connect(ip_address, port, ib_client)
-        time.sleep(1)
-        broker.reqPositions()
-        time.sleep(1)
-        broker.reqOpenOrders()
-        time.sleep(1)
-        broker.reqAccountSummary(9001, "All", AccountSummaryTags.AllTags)
-        time.sleep(1)
-
-        con_thread = threading.Thread(target=self.websocket_con, args=(broker,), daemon=True)
-        con_thread.start()
-        time.sleep(1)
-
-        broker.reqIds(1)
-        time.sleep(1)
-
-        return broker.orderId
+        ib_insync.IB.__init__(self)
 
     # Asset
-    def get_contract(self, order_dict):
-        self.contract = Contract()
-        self.contract.symbol = order_dict["ticker"]
-        self.contract.secType = order_dict["sec_type"]
-        self.contract.currency = order_dict["currency"]
-        self.contract.exchange = order_dict["exchange"]
-        self.contract.primaryExchange = order_dict["primary_exchange"] #For options leave blank
-        self.contract.lastTradeDateOrContractMonth = order_dict["lastTradeDateOrContractMonth"]
-        self.contract.strike = order_dict["strike"]
-        self.contract.right = order_dict["right"]
-        self.contract.multiplier = order_dict["multiplier"]
+    async def get_stock_contract(self, symbol: str = '', exchange: str = 'SMART', currency: str = '', primaryExchange: str = ''):
+        """
+            Returns a stock contract.
 
-        return self.contract
+            :param symbol: The symbol.
+            :param exchange: The exchange at which the contract is being traded.
+            :param currency: The currency for the contract.
+            :param primaryExchange: The primary exchange for the contract.
+        """
+
+        stock_contract = ib_insync.Stock(symbol=symbol, exchange=exchange, currency=currency, primaryExchange=primaryExchange)
+        return await self.qualifyContractsAsync(stock_contract)
+
+    async def get_options_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '',
+                                   expiry_year: int = '', strike: float = 0.0, right: str = '', exchange: str = 'SMART',
+                                   multiplier: str = '100', currency: str = ''):
+        """
+            Returns an option contract.
+
+            :param symbol: The symbol.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param strike: The strike price.
+            :param right: The right of the option. Possible options are "C", "P"
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        expiration_date = str(expiry_year).zfill(2) + str(expiry_month).zfill(2) + str(expiry_date).zfill(2)
+        option_contract = ib_insync.Option(symbol=symbol, lastTradeDateOrContractMonth=expiration_date,
+                                           strike=strike, right=right, exchange=exchange, multiplier=multiplier,
+                                           currency=currency)
+
+        return await self.qualifyContractsAsync(option_contract)
+
+    async def get_futures_contract(self, symbol: str = '', expiry_date: int = '', expiry_month: int = '',
+                                   expiry_year: int = '', exchange: str = 'SMART', local_symbol: str = '',
+                                   multiplier: str = '100', currency: str = ''):
+
+        """
+            Returns a future contract.
+
+            :param symbol: The symbol.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param exchange: The exchange at which the contract is being traded.
+            :param local_symbol: The contract's symbol within its primary exchange.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        expiration_date = str(expiry_year).zfill(2) + str(expiry_month).zfill(2) + str(expiry_date).zfill(2)
+        future_contract = ib_insync.Future(symbol=symbol, lastTradeDateOrContractMonth=expiration_date,
+                                           exchange=exchange, localSymbol=local_symbol, multiplier=multiplier,
+                                           currency=currency)
+
+        return await self.qualifyContractsAsync(future_contract)
 
     # Prepare/Send Orders
-    def get_market_order(self, order_dict):
-        market_order = Order()
-        market_order.orderId = order_dict["mkt_order_id"]
-        market_order.action = order_dict["mkt_action"]
-        market_order.orderType = 'MKT'
-        market_order.totalQuantity = order_dict["mkt_quantity"]
-        market_order.tif = order_dict["mkt_time_in_force"]
-        market_order.goodTillDate = order_dict["mkt_good_till_date"]
-        market_order.goodAfterTime = order_dict["mkt_good_after_date"]
-        market_order.account = order_dict["account_no"]
-        market_order.transmit = order_dict["mkt_transmit"]
+    async def get_market_order(self, symbol: str, quantity: int, sec_type: str, action: str = 'BUY', instruction: str = 'OPEN',
+                               session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
+                               good_till_cancel_end_time='', good_till_date='', good_after_time='', parent_id: int = '',
+                               account_no: str = '', transmit: bool = True, **kwargs):
+        """
+            Returns a market order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+    
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
 
-        return market_order
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
 
-    def get_stop_limit_order(self, order_dict, digits=2):
-        stop_limit_order = Order()
-        stop_limit_order.orderId = order_dict["slo_order_id"]
-        stop_limit_order.action = order_dict["slo_action"]
-        stop_limit_order.orderType = 'STP LMT'
-        stop_limit_order.totalQuantity = order_dict["slo_quantity"]
-        stop_limit_order.lmtPrice = truncate(order_dict["slo_limit_price"], digits)
-        stop_limit_order.auxPrice = truncate(order_dict["slo_stop_price"], digits)
-        stop_limit_order.tif = order_dict["slo_time_in_force"]
-        stop_limit_order.goodTillDate = order_dict["slo_good_till_date"]
-        stop_limit_order.goodAfterTime = order_dict["slo_good_after_date"]
-        stop_limit_order.account = order_dict["account_no"]
-        stop_limit_order.transmit = order_dict["slo_transmit"]
+        return ib_insync.MarketOrder(totalQuantity=quantity,
+                                     action=action,
+                                     outsideRth=session,
+                                     tif=duration,
+                                     activeStartTime=good_till_cancel_start_time,
+                                     activeStopTime=good_till_cancel_end_time,
+                                     goodTillDate=good_till_date,
+                                     goodAfterTime=good_after_time,
+                                     parentId=parent_id,
+                                     account=account_no,
+                                     transmit=transmit,
+                                     eTradeOnly=None,
+                                     firmQuoteOnly=None,
+                                     **kwargs)
 
-        return stop_limit_order
+    async def get_stop_limit_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
+                                   limit_price: float, digits: int = 2, trigger_method: str = 'LAST', action: str = 'BUY', instruction: str = 'OPEN',
+                                   session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
+                                   good_till_cancel_end_time='', good_till_date='', good_after_time='',
+                                   parent_id: int = '', account_no: str = '', transmit: bool = True, **kwargs):
+        """
+            Returns a stop limit order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-    def get_limit_order(self, order_dict, digits=2):
-        limit_order = Order()
-        limit_order.orderId = order_dict["lo_order_id"]
-        limit_order.action = order_dict["lo_action"]
-        limit_order.orderType = 'LMT'
-        limit_order.totalQuantity = order_dict["lo_quantity"]
-        limit_order.lmtPrice = truncate(order_dict["lo_limit_price"], digits)
-        limit_order.tif = order_dict["lo_time_in_force"]
-        limit_order.goodTillDate = order_dict["lo_good_till_date"]
-        limit_order.goodAfterTime = order_dict["lo_good_after_date"]
-        limit_order.account = order_dict["account_no"]
-        limit_order.transmit = order_dict["lo_transmit"]
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param stop_price: The stop price for the order.
+            :param limit_price: The limit price for the order.
+            :param digits: The number of digits to which the price should be truncated.
+            :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
 
-        return limit_order
+        trigger_methods = ["DEFAULT", "DOUBLE_BID_ASK", "LAST", "DOUBLE_LAST", "BID_ASK", "", "", "LAST_BID_ASK", "MID"]
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
 
-    def get_stop_order(self, order_dict, digits=2):
-        stop_order = Order()
-        stop_order.orderId = order_dict["so_order_id"]
-        stop_order.action = order_dict["so_action"]
-        stop_order.orderType = 'STP'
-        stop_order.totalQuantity = order_dict["so_quantity"]
-        stop_order.auxPrice = truncate(order_dict["so_stop_price"], digits)
-        stop_order.tif = order_dict["so_time_in_force"]
-        stop_order.goodTillDate = order_dict["so_good_till_date"]
-        stop_order.goodAfterTime = order_dict["so_good_after_date"]
-        stop_order.account = order_dict["account_no"]
-        stop_order.transmit = order_dict["so_transmit"]
+        return ib_insync.StopLimitOrder(totalQuantity=quantity,
+                                        lmtPrice=truncate(limit_price, digits),
+                                        stopPrice=truncate(stop_price, digits),
+                                        triggerMethod=trigger_methods.index(trigger_method),
+                                        action=action,
+                                        outsideRth=session,
+                                        tif=duration,
+                                        activeStartTime=good_till_cancel_start_time,
+                                        activeStopTime=good_till_cancel_end_time,
+                                        goodTillDate=good_till_date,
+                                        goodAfterTime=good_after_time,
+                                        parentId=parent_id,
+                                        account=account_no,
+                                        transmit=transmit,
+                                        eTradeOnly=None,
+                                        firmQuoteOnly=None,
+                                        **kwargs)
 
-        return stop_order
+    async def get_limit_order(self, symbol: str, quantity: int, sec_type: str, limit_price: float, digits: int = 2,
+                              action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
+                              good_till_cancel_start_time='', good_till_cancel_end_time='', good_till_date='',
+                              good_after_time='', parent_id: int = '', account_no: str = '',
+                              transmit: bool = True, **kwargs):
+        """
+            Returns a limit order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-    def get_trailing_stop_order(self, orders, trail_type, trail_amount, trail_stop, digits=2):
-       for o in orders:
-           o.orderType = "TRAIL"
-           if trail_stop != "":
-               o.trailStopPrice = truncate(trail_stop, digits)
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param limit_price: The limit price for the order.
+            :param digits: The number of digits to which the price should be truncated.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
 
-           if str.upper(trail_type) == "AMOUNT":
-               o.auxPrice = truncate(trail_amount, digits)
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
 
-           elif str.upper(trail_type) == "PERCENTAGE":
-               o.auxPrice = ""
-               o.trailingPercent = trail_amount
+        return ib_insync.LimitOrder(totalQuantity=quantity,
+                                        lmtPrice=truncate(limit_price, digits),
+                                        action=action,
+                                        outsideRth=session,
+                                        tif=duration,
+                                        activeStartTime=good_till_cancel_start_time,
+                                        activeStopTime=good_till_cancel_end_time,
+                                        goodTillDate=good_till_date,
+                                        goodAfterTime=good_after_time,
+                                        parentId=parent_id,
+                                        account=account_no,
+                                        transmit=transmit,
+                                        eTradeOnly=None,
+                                        firmQuoteOnly=None,
+                                        **kwargs)
 
-       return o
+    async def get_stop_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
+                             digits: int = 2, trigger_method: str = 'LAST', action: str = 'BUY', instruction: str = 'OPEN',
+                             session: str = 'NORMAL', duration: str = 'DAY', good_till_cancel_start_time='',
+                             good_till_cancel_end_time='', good_till_date='', good_after_time='',
+                             parent_id: int = '', account_no: str = '', transmit: bool = True, **kwargs):
+        """
+            Returns a stop order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-    def get_oto_order(self, orders):
-        parent_order_id = orders[0].orderId
-        for o in orders:
-            o.parentId = parent_order_id
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param stop_price: The stop price for the order.
+            :param digits: The number of digits to which the price should be truncated.
+            :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
 
-        return o
+        trigger_methods = ["DEFAULT", "DOUBLE_BID_ASK", "LAST", "DOUBLE_LAST", "BID_ASK", "", "", "LAST_BID_ASK", "MID"]
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
 
-    def get_oco_order(self, orders, oca_group_name, oca_group_type):
-        for o in orders:
-            o.ocaGroup = oca_group_name
-            o.ocaType = oca_group_type
+        return ib_insync.StopOrder(totalQuantity=quantity,
+                                   stopPrice=truncate(stop_price, digits),
+                                   triggerMethod=trigger_methods.index(trigger_method),
+                                   action=action,
+                                   outsideRth=session,
+                                   tif=duration,
+                                   activeStartTime=good_till_cancel_start_time,
+                                   activeStopTime=good_till_cancel_end_time,
+                                   goodTillDate=good_till_date,
+                                   goodAfterTime=good_after_time,
+                                   parentId=parent_id,
+                                   account=account_no,
+                                   transmit=transmit,
+                                   eTradeOnly = None,
+                                   firmQuoteOnly = None,
+                                   **kwargs)
 
-        return o
+    async def get_trailing_stop_order(self, symbol: str, quantity: int, sec_type: str, trail_type: str,
+                                      trail_amount: float, trail_stop: float = '', digits: int = 2,
+                                      trigger_method: str = 'LAST', stop_price_link_basis: str = 'LAST',
+                                      action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
+                                      good_till_cancel_start_time='', good_till_cancel_end_time='',
+                                      good_till_date='', good_after_time='', parent_id: int = '',
+                                      account_no: str = '', transmit: bool = True, **kwargs):
+        """
+            Returns a trailing stop order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-    def send_order(self, order_id, contract, order):
-        self.client.placeOrder(order_id, contract, order)
-        time.sleep(1)
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param trail_type: The type of trailing stop. Possible values are "PERCENTAGE", "AMOUNT".
+            :param trail_amount: The amount to trail the stop by.
+            :param trail_stop:
+            :param digits: The number of digits to which the price should be truncated.
+            :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
+                                   Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
+            :param stop_price_link_basis: Not used.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
+
+        trigger_methods = ["DEFAULT", "DOUBLE_BID_ASK", "LAST", "DOUBLE_LAST", "BID_ASK", "", "", "LAST_BID_ASK", "MID"]
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
+
+        if trail_stop != "":
+            trail_stop = truncate(trail_stop, digits)
+
+        if str.upper(trail_type) == "AMOUNT":
+            if float(trail_amount) < 0:
+                raise ValueError('The trail amount must be greater than 0')
+            else:
+                aux_price = truncate(trail_amount, digits)
+                trailing_percent = ""
+        elif str.upper(trail_type) == "PERCENTAGE":
+            if float(trail_amount) < 1 or float(trail_amount) > 99:
+                raise ValueError('The trail amount must be between 1 to 99')
+            else:
+                trailing_percent = trail_amount
+                aux_price = ""
+
+        return ib_insync.Order(
+            orderType='TRAIL',
+            totalQuantity=quantity,
+            trailStopPrice=trail_stop,
+            triggerMethod=trigger_methods.index(trigger_method),
+            auxPrice=aux_price,
+            trailingPercent=trailing_percent,
+            action=action,
+            outsideRth=session,
+            tif=duration,
+            activeStartTime=good_till_cancel_start_time,
+            activeStopTime=good_till_cancel_end_time,
+            goodTillDate=good_till_date,
+            goodAfterTime=good_after_time,
+            parentId=parent_id,
+            account=account_no,
+            transmit=transmit,
+            **kwargs)
+
+    async def get_trailing_stop_limit_order(self, symbol: str, quantity: int, sec_type: str, trail_type: str,
+                                            trail_amount: float, trail_stop: float = '', trail_limit: float = '',
+                                            limit_price_offset: float = '', digits: int = 2,
+                                            trigger_method: str = 'LAST', stop_price_link_basis: str = 'LAST',
+                                            action: str = 'BUY', instruction: str = 'OPEN', session: str = 'NORMAL', duration: str = 'DAY',
+                                            good_till_cancel_start_time='', good_till_cancel_end_time='',
+                                            good_till_date='', good_after_time='', parent_id: int = '',
+                                            account_no: str = '', transmit: bool = True, **kwargs):
+        """
+            Returns a trailing stop order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: Not used.
+            :param quantity: The quantity/amount.
+            :param sec_type: Not used.
+            :param trail_type: The type of trailing stop. Possible values are "PERCENTAGE", "AMOUNT".
+            :param trail_amount: The amount to trail the stop by.
+            :param trail_stop:
+            :param trail_limit:
+            :param limit_price_offset:
+            :param digits: The number of digits to which the price should be truncated.
+            :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
+                                   Possible values are "STANDARD", "BID", "ASK", "LAST", "MARK"
+            :param stop_price_link_basis: Not used.
+            :param action: The required action. Possible values are "BUY", "SELL".
+            :param instruction: Not used.
+            :param session: The session where the order should be executed. Possible values are "NORMAL", "AM", "PM", "SEAMLESS".
+            :param duration: The length of time over which the order will be active. Possible values are "DAY", "GTC", "FOK", "IOC", "GTD", "GAT", "OPG", "DTC".
+            :param good_till_cancel_start_time: The start time of GTC orders.
+            :param good_till_cancel_end_time: The stop time of GTC orders.
+            :param good_till_date: The date/time until which the order will be active (If ``duration`` is set to ``GTD``).
+            :param good_after_time: The date/time after which the order will become active (If ``duration`` is set to ``GAT``).
+            :param parent_id: The id of the parent order.
+            :param account_no: The account number to which the order is being submitted.
+            :param transmit: Whether to transmit the order to the broker or not. Default value is ``True``.
+        """
+
+        trigger_methods = ["DEFAULT", "DOUBLE_BID_ASK", "LAST", "DOUBLE_LAST", "BID_ASK", "", "", "LAST_BID_ASK", "MID"]
+        session = True if session == "AM" or "PM" or "SEAMLESS" else False
+
+        if trail_stop != "":
+            trail_stop = truncate(trail_stop, digits)
+        if trail_limit != "":
+            trail_limit = truncate(trail_limit, digits)
+            limit_price_offset = ""
+        if limit_price_offset != "":
+            trail_limit = ""
+            limit_price_offset = truncate(limit_price_offset, digits)
+
+        if str.upper(trail_type) == "AMOUNT":
+            if float(trail_amount) < 0:
+                raise ValueError('The trail amount must be greater than 0')
+            else:
+                aux_price = truncate(trail_amount, digits)
+                trailing_percent = ""
+        elif str.upper(trail_type) == "PERCENTAGE":
+            if float(trail_amount) < 1 or float(trail_amount) > 99:
+                raise ValueError('The trail amount must be between 1 to 99')
+            else:
+                trailing_percent = trail_amount
+                aux_price = ""
+
+        return ib_insync.Order(
+            orderType='TRAIL LIMIT',
+            totalQuantity=quantity,
+            trailStopPrice=trail_stop,
+            lmtPrice=trail_limit,
+            lmtPriceOffset=limit_price_offset,
+            triggerMethod=trigger_methods.index(trigger_method),
+            auxPrice=aux_price,
+            trailingPercent=trailing_percent,
+            action=action,
+            outsideRth=session,
+            tif=duration,
+            activeStartTime=good_till_cancel_start_time,
+            activeStopTime=good_till_cancel_end_time,
+            goodTillDate=good_till_date,
+            goodAfterTime=good_after_time,
+            parentId=parent_id,
+            account=account_no,
+            transmit=transmit,
+            **kwargs)
+
+    async def get_oto_order(self, parent_order, child_orders):
+        """
+            Returns a one-triggers-other order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param parent_order: The first order to be executed before triggering the remaining orders.
+            :param child_orders: A list of orders to be triggered after the parent_order is executed.
+        """
+
+        for o in child_orders:
+            o.parentId = parent_order.order.orderId
+
+        return child_orders
+
+    async def get_oco_order(self, orders, oca_group_name: str, oca_group_type: str):
+        """
+            Returns a one-cancels-other order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param orders: A list of orders to be placed in the oco group.
+            :param oca_group_name: A name to be assigned to the oco group.
+            :param oca_group_type: The oco group type. Possible values are: "CANCEL", "REDUCE_WITH_BLOCK", "REDUCE_WITH_NO_BLOCK"
+        """
+
+        oca_types= ["", "CANCEL", "REDUCE_WITH_BLOCK", "REDUCE_WITH_NO_BLOCK"]
+
+        return self.oneCancelsAll(orders, oca_group_name, oca_types.index(oca_group_type))
+
+    async def get_price_condition(self, price: float, exchange: str, conjunction: str = 'a', is_more: bool = True,
+                            contract_id: int = 0, trigger_method: str = "DEFAULT"):
+        """
+            Returns an order condition based on price. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param price: The price at which the order should be sent.
+            :param exchange: The exchange at which the contract is being traded.
+            :param conjunction: To be used to join multiple conditions. Possible values are: 'a' (AND), 'o' (OR)
+            :param is_more: Should the current price be more than the ``price`` variable. True if yes, else False.
+            :param contract_id: The id of the contract being traded.
+            :param trigger_method: Specifies how Simulated Stop, Stop-Limit and Trailing Stop orders are triggered.
+        """
+
+        trigger_methods = ["DEFAULT", "DOUBLE_BID_ASK", "LAST", "DOUBLE_LAST", "BID_ASK", "", "", "LAST_BID_ASK", "MID"]
+
+        price_cond = ib_insync.order.PriceCondition()
+        price_cond.condType = 1
+        price_cond.conjunction = conjunction
+        price_cond.isMore = is_more
+        price_cond.price = price
+        price_cond.conId = contract_id
+        price_cond.exch = exchange
+        price_cond.triggerMethod = trigger_methods.index(trigger_method)
+
+        return price_cond
+
+    async def get_time_condition(self, time: str, conjunction: str = 'a', is_more: bool = True):
+        """
+            Returns an order condition based on time. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param time: The time at which the order should be sent.
+            :param conjunction: To be used to join multiple conditions. Possible values are: 'a' (AND), 'o' (OR)
+            :param is_more: Should the current time be more than the ``time`` variable. True if yes, else False.
+        """
+
+        time_cond = ib_insync.order.TimeCondition()
+        time_cond.condType = 3
+        time_cond.conjunction = conjunction
+        time_cond.isMore = is_more
+        time_cond.time = time
+
+        return time_cond
+
+    async def send_order(self, contract, account_no: str, order):
+        """
+            Submit the order
+
+            :param contract: The contract to be traded.
+            :param account_no: Not used.
+            :param order: The order to be sent
+        """
+
+        return self.placeOrder(contract, order)
 
     # Get Orders/Positions
-    def get_order_by_ticker(self, order_dict):
-        all_orders = self.get_all_orders(order_dict)
-        return all_orders[all_orders['cont_ticker'] == order_dict["ticker"]]
+    async def get_order_by_symbol(self, symbol: str, account_no: str):
+        """
+            Returns a list of open orders for the given symbol
 
-    def get_all_orders(self, order_dict):
-        return pd.read_sql_query(f"select * from {order_dict['strategy_table']} where status IN ('Open');", con=order_dict['db'])
+            :param symbol: The ticksymboler for which to get the open orders.
+            :param account_no: Not used.
+        """
 
-    def get_position_by_ticker(self, order_dict):
-        all_positions = self.get_all_positions(order_dict)
-        return all_positions[all_positions['cont_ticker'] == order_dict["ticker"]]
+        orders_list = []
+        all_orders = await self.get_all_orders(account_no='')
 
-    def get_all_positions(self, order_dict):
-        return pd.read_sql_query(f"select cont_ticker from {order_dict['strategy_table']} where status IN ('In Progress');", con = order_dict['db'])
+        for trades in all_orders:
+            if trades.contract.symbol == symbol:
+                orders_list.append(trades)
 
-    # Cancel Orders/Close Positions
-    def cancel_order(self, order_dict, order_id):
-        order_dict['broker'].cancelOrder(order_id)
+        return orders_list
 
-    def cancel_all_orders(self, order_dict):
-        open_orders = self.get_all_orders(order_dict)
+    async def get_all_orders(self, account_no: str):
+        """
+            Returns a list of all open orders.
 
-        for ind in open_orders.index:
-            order_id = open_orders['parent_order_id'][ind]
-            self.cancel_order(order_dict, order_id)
+            :param account_no: Not used.
+        """
 
-    def close_position(self, pos_order_dict, underlying=False):
-        broker = pos_order_dict['broker']
-        sec_type = pos_order_dict['sec_type']
-        direction = pos_order_dict['direction']
-        opt_right = pos_order_dict['right']
-        stock_conid = pos_order_dict['stock_conid']
-        cont_exchange = pos_order_dict['exchange']
-
-        pos_con = broker.get_contract(pos_order_dict)
-        mkt_order = broker.get_market_order(pos_order_dict)
-
-        if underlying:
-            if sec_type == "STK":
-                is_greater_than = True if direction == "Bullish" else False
-                price = 0 if direction == "Bullish" else 99999
-
-            if sec_type == "OPT":
-                if opt_right == "C" and direction == "Bullish":
-                    is_greater_than = True
-                    price = 0
-
-                elif opt_right == "C" and direction == "Bearish":
-                    is_greater_than = False
-                    price = 99999
-
-                elif opt_right == "P" and direction == "Bullish":
-                    is_greater_than = False
-                    price = 99999
-
-                elif opt_right == "P" and direction == "Bearish":
-                    is_greater_than = True
-                    price = 0
-
-            tp_price_condition = PriceCondition(PriceCondition.TriggerMethodEnum.Default, stock_conid, cont_exchange, is_greater_than, price)
-            mkt_order.conditions.append(tp_price_condition)
-
-        broker.send_order(pos_order_dict["order_id"], pos_con, mkt_order)
-
-    def close_all_positions(self, order_dict, underlying=False):
-        open_positions = pd.read_sql_query(
-            f"select * from {order_dict['orders_table']} LEFT OUTER JOIN {order_dict['strategy_table']} ON {order_dict['strategy_table']}.profit_order_id = order_id WHERE {order_dict['strategy_table']}.status IN ('In Progress');", con = order_dict['db'])
-
-        for ind in open_positions.index:
-            pos_order_dict = {
-                "ticker": open_positions.iloc[ind]['cont_ticker'],
-                "sec_type": open_positions.iloc[ind]['sec_type'],
-                "currency": open_positions.iloc[ind]['cont_currency'],
-                "exchange": open_positions.iloc[ind]['cont_exchange'],
-                "primary_exchange": open_positions.iloc[ind]['primary_exchange'],
-                "stock_conid": open_positions.iloc[ind]['stock_conid'],
-                "direction": open_positions.iloc[ind]['direction'],
-
-                "lastTradeDateOrContractMonth": open_positions.iloc[ind]['cont_date'],
-                "strike": open_positions.iloc[ind]['strike'],
-                "right": open_positions.iloc[ind]['opt_right'],
-                "multiplier": open_positions.iloc[ind]['multiplier'],
-
-                "mkt_order_id": open_positions.iloc[ind]['order_id'],
-                "mkt_action": open_positions.iloc[ind]['action'],
-                "mkt_quantity": open_positions.iloc[ind]['remaining'],
-                "mkt_parent_order_id": "",
-                "mkt_time_in_force": "",
-                "mkt_good_till_date": "",
-                "account_no": order_dict['account_no'],
-                "mkt_transmit": True,
-
-                "order_id": open_positions.iloc[ind]['order_id'],
-                "broker": order_dict['broker']
-            }
-
-            self.close_position(pos_order_dict, underlying)
-
-    # Miscellaneous
-    def getOrderID(self, client):
-        client.reqIds(1)
-        time.sleep(1)
-
-    def set_strategy_status(self, order_dict):
-        strategy_order_ids = pd.read_sql_query(f"select parent_order_id, profit_order_id, stoploss_order_id from {order_dict['strategy_table']} where status IN (' ', 'Open', 'In Progress') ;", con = order_dict['db'])
-
-        closed_status = ['PendingCancel', 'ApiCancelled', 'Cancelled', 'Inactive']
+        orders_list = []
         open_status = ['ApiPending', 'PendingSubmit', 'PreSubmitted', 'Submitted']
-        filled_status = ['Filled']
 
-        for i in range (0, len(strategy_order_ids)):
-            row = strategy_order_ids.iloc[i]
+        for trades in self.trades():
+            if trades.orderStatus.status in open_status:
+                orders_list.append(trades)
 
-            parent_order_id = row['parent_order_id']
-            profit_order_id = row['profit_order_id']
-            stoploss_order_id = row['stoploss_order_id']
+        return orders_list
 
-            parent_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {parent_order_id};", con = order_dict['db'])
-            stoploss_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {stoploss_order_id};", con = order_dict['db'])
-            profit_order_status = pd.read_sql_query(f"select order_status from {order_dict['orders_table']} WHERE order_id = {profit_order_id};", con = order_dict['db'])
+    async def get_position_by_symbol(self, symbol: str, account_no: str):
+        """
+            Returns a list of open positions for the given symbol
 
-            if (parent_order_status.values in filled_status) and (stoploss_order_status.values in open_status or profit_order_status.values in open_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'In Progress' WHERE parent_order_id = {parent_order_id};")
+            :param symbol: The symbol for which to get the open positions.
+            :param account_no: Not used.
+        """
 
-            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in filled_status or profit_order_status.values in filled_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+        pos_list = []
+        all_pos = await self.get_all_positions(account_no='')
 
-            elif (parent_order_status.values in filled_status) and (stoploss_order_status.values in closed_status or profit_order_status.values in closed_status):
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+        for pos in all_pos:
+            if pos.contract.symbol == symbol:
+                pos_list.append(pos)
 
-            elif parent_order_status.values in closed_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Closed' WHERE parent_order_id = {parent_order_id};")
+        return pos_list
 
-            elif parent_order_status.values in open_status:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = 'Open' WHERE parent_order_id = {parent_order_id};")
+    async def get_all_positions(self, account_no: str):
+        """
+            Returns a list of all open positions.
+
+            :param account_no: The account number from which to get the orders.
+        """
+
+        pos_list = []
+
+        for pos in await self.reqPositionsAsync():
+            if account_no:
+                if pos.position != 0 and pos.account == account_no:
+                    pos_list.append(pos)
 
             else:
-                query = text(f"UPDATE {order_dict['strategy_table']} SET status = ' ' WHERE parent_order_id = {parent_order_id};")
+                if pos.position != 0:
+                    pos_list.append(pos)
 
-            with order_dict['db'].connect() as conn:
-                conn.execute(query)
-                conn.close()
-                order_dict['db'].dispose()
+        return pos_list
 
-    # IB SPECIFIC CALLBACK FUNCTIONS
-    def nextValidId(self, orderId):
-        super().nextValidId(orderId)
+    # Cancel Orders/Close Positions
+    async def cancel_order(self, order_id: int, account_no: str):
+        """
+            Cancels the order for an given order id.
 
-        self.orderId = orderId
-        time.sleep(1)
+            :param order_id: The order id for the order to be cancelled.
+            :param account_no: Not used.
+        """
 
-    def position(self, account, contract, position, avgCost):
-        super().position(account, contract, position, avgCost)
+        trades = await self.get_all_orders(account_no='')
 
-    def positionEnd(self):
-        super().positionEnd()
+        for trade in trades:
+            if trade.order.orderId == order_id:
+                self.cancelOrder(trade.order)
 
-    def positionMulti(self, reqId, account, modelCode, contract, pos, avgCost):
-        super().positionMulti(reqId, account, modelCode, contract, pos, avgCost)
+    async def cancel_all_orders(self, account_no: str):
+        """
+            Cancels all orders in the given account.
 
-    def positionMultiEnd(self, reqId: int):
-        super().positionMultiEnd(reqId)
+            :param account_no: Not used.
+        """
 
-    def openOrder(self, orderId, contract, order, orderState):
-        super().openOrder(orderId, contract, order, orderState)
+        trades = await self.get_all_orders(account_no='')
 
-        good_after_time = 0 if order.goodAfterTime == '' else order.goodAfterTime
-        sql_str = f"INSERT INTO {self.orders_table}(order_id, perm_id, client_id, ticker, order_type, action, limit_price, stop_price, quantity, parent_id, time_in_force, good_till_date, good_after_time) " \
-                  f"VALUES({orderId}, {order.permId}, {order.clientId}, '{contract.symbol}', '{order.orderType}', '{order.action}', {order.lmtPrice}, {order.auxPrice}, {order.totalQuantity}, {order.parentId}, '{order.tif}', '{order.goodTillDate}', '{good_after_time}') " \
-                  f"ON CONFLICT(order_id) " \
-                  f"DO UPDATE SET " \
-                  f"order_id = {orderId}," \
-                  f"perm_id = {order.permId}," \
-                  f"client_id = {order.clientId}," \
-                  f"ticker = '{contract.symbol}'," \
-                  f"order_type = '{order.orderType}'," \
-                  f"action = '{order.action}'," \
-                  f"limit_price = {order.lmtPrice}," \
-                  f"stop_price = {order.auxPrice}," \
-                  f"quantity = {order.totalQuantity}," \
-                  f"parent_id = {order.parentId}," \
-                  f"time_in_force = '{order.tif}'," \
-                  f"good_till_date = '{order.goodTillDate}'," \
-                  f"good_after_time = '{order.goodAfterTime}';"
+        for trade in trades:
+            self.cancelOrder(trade.order)
 
-        with self.db.connect() as conn:
-            conn.execute(sql_str)
-            conn.close()
-            self.db.dispose()
+    async def close_position(self, account_no, symbol: str):
+        """
+            Closes all positions for the requested symbol.
 
-    def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        super().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice, clientId, whyHeld, mktCapPrice)
+            :param account_no: Not Used.
+            :param symbol: The symbol for which the positions should be closed.
+        """
 
-        why_held = 0 if whyHeld == '' else whyHeld
-        sql_str = f"INSERT INTO {self.orders_table}(order_id, order_status, filled, remaining, avg_fill_price, last_fill_price, client_id, why_held, mkt_cap_price) " \
-                  f"VALUES({orderId}, '{status}', {filled}, {remaining}, {avgFillPrice}, {lastFillPrice}, {clientId}, '{why_held}', {mktCapPrice}) " \
-                  f"ON CONFLICT(order_id) " \
-                  f"DO UPDATE SET " \
-                  f"order_status = '{status}'," \
-                  f"filled = {filled}," \
-                  f"remaining = {remaining}," \
-                  f"avg_fill_price = {avgFillPrice}," \
-                  f"last_fill_price = {lastFillPrice}," \
-                  f"client_id = {clientId}," \
-                  f"why_held = '{why_held}'," \
-                  f"mkt_cap_price = {mktCapPrice};"
+        pos_list = await self.get_all_positions(account_no='')
 
-        with self.db.connect() as conn:
-            conn.execute(sql_str)
-            conn.close()
-            self.db.dispose()
+        for pos in pos_list:
+            if pos.contract.symbol == symbol:
+                action = ""
+                if pos.position > 0:
+                    action = "SELL"
+                elif pos.position < 0:
+                    action = "BUY"
 
-    def contractDetails(self, reqId, contractDetails):
-        super().contractDetails(reqId, contractDetails)
+                order = await self.get_market_order(symbol=symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
+                await self.send_order(contract=ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no='', order=order)
 
-        self.mintick = contractDetails.minTick
-        self.conid = contractDetails.contract.conId
+    async def close_all_positions(self, account_no):
+        """
+            Closes all positions.
 
-    def contractDetailsEnd(self, reqId):
-        super().contractDetailsEnd(reqId)
+            :param account_no: Not Used.
+        """
 
-    def execDetails(self, reqId, contract, execution):
-        super().execDetails(reqId, contract, execution)
+        pos_list = await self.get_all_positions(account_no='')
 
-        sql_str = f"INSERT INTO {self.orders_table}(order_id, exec_id, time, account_no, exchange, side, shares, price, liquidation, cum_qty, avg_price) " \
-                  f"VALUES('{execution.orderId}', '{execution.execId}', '{execution.time}', '{execution.acctNumber}', '{execution.exchange}', '{execution.side}', {execution.shares}, {execution.price}, {execution.liquidation}, {execution.cumQty}, {execution.avgPrice}) " \
-                  f"ON CONFLICT(order_id) " \
-                  f"DO UPDATE SET " \
-                  f"exec_id = '{execution.execId}'," \
-                  f"time = '{execution.time}'," \
-                  f"account_no = '{execution.acctNumber}'," \
-                  f"exchange = '{execution.exchange}'," \
-                  f"side = '{execution.side}'," \
-                  f"shares = {execution.shares}," \
-                  f"price = {execution.price}," \
-                  f"liquidation = {execution.liquidation}," \
-                  f"cum_qty = {execution.cumQty}," \
-                  f"avg_price = {execution.avgPrice};"
+        for pos in pos_list:
+            action = ""
+            if pos.position > 0:
+                action = "SELL"
+            elif pos.position < 0:
+                action = "BUY"
 
-        with self.db.connect() as conn:
-            conn.execute(sql_str)
-            conn.close()
-            self.db.dispose()
+            order = await self.get_market_order(symbol=pos.contract.symbol, quantity=int(pos.position), sec_type='', action=action, account_no=pos.account, transmit=True)
+            await self.send_order(ib_insync.Contract(conId=pos.contract.conId, exchange="SMART"), account_no, order)
 
-    def commissionReport(self, commissionReport):
-        super().commissionReport(commissionReport)
+    # Complex Option Contracts
+    async def get_long_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
 
-        sql_str = f"INSERT INTO {self.orders_table}(exec_id, commission, currency, realized_pnl) " \
-                  f"VALUES('{commissionReport.execId}', {commissionReport.commission}, '{commissionReport.currency}', {commissionReport.realizedPNL}) " \
-                  f"ON CONFLICT(exec_id) " \
-                  f"DO UPDATE SET " \
-                  f"commission = {commissionReport.commission}," \
-                  f"currency = '{commissionReport.currency}'," \
-                  f"realized_pnl = {commissionReport.realizedPNL};"
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
 
-        with self.db.connect() as conn:
-            conn.execute(sql_str)
-            conn.close()
-            self.db.dispose()
+        low_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='C',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
 
-    def updateAccountValue(self, key, val, currency, accountName):
-        super().updateAccountValue(key, val, currency, accountName)
+        high_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='C',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
 
-    def accountSummary(self, reqId: int, account: str, tag: str, value: str, currency: str):
-        super().accountSummary(reqId, account, tag, value, currency)
-        self.acc_dict[tag] = value
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = low_strike_call[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = low_strike_call[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = high_strike_call[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = high_strike_call[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    async def get_short_call_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int, expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a short call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        low_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='C',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_call = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='C',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = high_strike_call[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = high_strike_call[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = low_strike_call[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = low_strike_call[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    async def get_long_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_DEBIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='P',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='P',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = high_strike_put[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = high_strike_put[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = low_strike_put[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = low_strike_put[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    async def get_short_put_vertical_spread_contract(self, symbol: str, quantity: int, expiry_date: int,
+                                                     expiry_month: int,
+                                                     expiry_year: int, low_strike: float, high_strike: float,
+                                                     order_type: str = 'NET_CREDIT', order_price: float = '',
+                                                     instruction: str = 'OPEN', session: str = 'NORMAL',
+                                                     duration: str = 'DAY', exchange: str = '', multiplier: str = '100',
+                                                     currency: str = ''):
+        """
+            Returns a long call vertical spread order. This doesn't actually submit an order. To submit order, use ``send_order`` function.
+
+            :param symbol: The symbol.
+            :param quantity: Not used.
+            :param expiry_date: The expiration date for the contract.
+            :param expiry_month: The expiration month for the contract.
+            :param expiry_year: The expiration year for the contract.
+            :param low_strike: The lower strike price.
+            :param high_strike: The higher strike price.
+            :param order_type: Not used.
+            :param order_price: Not used.
+            :param instruction: Not used.
+            :param session: Not used.
+            :param duration: Not used.
+            :param exchange: The exchange at which the contract is being traded.
+            :param multiplier: The multiplier for the option price. Default value is 100.
+            :param currency: The currency for the contract.
+        """
+
+        low_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                          expiry_year=expiry_year, strike=low_strike, right='P',
+                                                          exchange=exchange, multiplier=multiplier, currency=currency)
+
+        high_strike_put = await self.get_options_contract(symbol=symbol, expiry_date=expiry_date, expiry_month=expiry_month,
+                                                           expiry_year=expiry_year, strike=high_strike, right='P',
+                                                           exchange=exchange, multiplier=multiplier, currency=currency)
+
+        contract = ib_insync.Contract()
+        contract.symbol = symbol
+        contract.secType = "BAG"
+        contract.currency = currency
+        contract.exchange = exchange
+
+        leg1 = ib_insync.ComboLeg()
+        leg1.conId = low_strike_put[0].conId
+        leg1.ratio = 1
+        leg1.action = "BUY"
+        leg1.exchange = low_strike_put[0].exchange
+
+        leg2 = ib_insync.ComboLeg()
+        leg2.conId = high_strike_put[0].conId
+        leg2.ratio = 1
+        leg2.action = "SELL"
+        leg2.exchange = high_strike_put[0].exchange
+
+        contract.comboLegs = []
+        contract.comboLegs.append(leg1)
+        contract.comboLegs.append(leg2)
+
+        return contract
+
+    # Account Information
+    async def get_account(self, account_no: str = ''):
+        """
+            Returns a dictionary with account summary details.
+
+            :param account_no: Not used.
+        """
+
+        account = {}
+        acc_summary = await self.accountSummaryAsync()
+
+        for acc in acc_summary:
+            account[acc.tag] = acc.value
+
+        return account

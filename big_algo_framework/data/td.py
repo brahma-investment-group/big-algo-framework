@@ -1,46 +1,58 @@
 from big_algo_framework.data.abstract_data import Data
-import configparser
 import datetime
 import pandas as pd
-import numpy as np
 import requests
 import time
 import json
 
 class TDData(Data):
-    def __init__(self):
-        pass
+    def __init__(self, api_key):
+        self.api_key = api_key
 
-    def get_options_data(self, options_dict, api_key):
+    async def get_historic_stock_data(self, symbol, period_type, period, frequency_type, frequency, extended_hours_data='false'):
+        endpoint = f'https://api.tdameritrade.com/v1/marketdata/{symbol}/pricehistory?' \
+                   f'&periodType={period_type}&' \
+                   f'&period={period}&' \
+                   f'&frequencyType={frequency_type}&' \
+                   f'&frequency={frequency}&' \
+                   f'&needExtendedHoursData={extended_hours_data}' \
+
+        page = requests.get(url=endpoint, params={'apikey': self.api_key})
+        time.sleep(1)
+        return json.loads(page.content)
+
+    async def get_historic_option_data(self, symbol, contract_type, strike_count="", include_quotes="False", strategy="SINGLE",
+                                 interval="", strike="", range="", volatility="", underlying_price="", interest_rate="",
+                                 days_to_expiration="", exp_month="ALL", option_type="ALL", days_forward=10):
         from_date = datetime.date.today()
-        to_date = from_date + datetime.timedelta(days=options_dict["days_forward"])
+        to_date = from_date + datetime.timedelta(days=days_forward)
 
         endpoint = f'https://api.tdameritrade.com/v1/marketdata/chains?' \
-                   f'&symbol={options_dict["ticker"]}&' \
-                   f'contractType={options_dict["contract_type"]}&' \
-                   f'strikeCount={options_dict["strike_count"]}&'\
-                   f'includeQuotes={options_dict["include_quotes"]}&' \
-                   f'strategy={options_dict["strategy"]}&' \
-                   f'interval={options_dict["interval"]}&' \
-                   f'strike={options_dict["strike"]}&' \
-                   f'range={options_dict["range"]}&' \
+                   f'&symbol={symbol}&' \
+                   f'contractType={contract_type}&' \
+                   f'strikeCount={strike_count}&'\
+                   f'includeQuotes={include_quotes}&' \
+                   f'strategy={strategy}&' \
+                   f'interval={interval}&' \
+                   f'strike={strike}&' \
+                   f'range={range}&' \
                    f'fromDate={from_date}&' \
                    f'toDate={to_date}&' \
-                   f'volatility={options_dict["volatility"]}&' \
-                   f'underlyingPrice={options_dict["underlying_price"]}&' \
-                   f'interestRate={options_dict["interest_rate"]}&' \
-                   f'daysToExpiration={options_dict["days_to_expiration"]}&' \
-                   f'expMonth={options_dict["exp_month"]}&' \
-                   f'optionType={options_dict["option_type"]}' \
+                   f'volatility={volatility}&' \
+                   f'underlyingPrice={underlying_price}&' \
+                   f'interestRate={interest_rate}&' \
+                   f'daysToExpiration={days_to_expiration}&' \
+                   f'expMonth={exp_month}&' \
+                   f'optionType={option_type}' \
 
-        page = requests.get(url = endpoint, params={'apikey': api_key})
+        page = requests.get(url = endpoint, params={'apikey': self.api_key})
         time.sleep(1)
         content = json.loads(page.content)
 
         call_options = pd.DataFrame()
         put_options = pd.DataFrame()
 
-        if options_dict["contract_type"] == "CALL" and content["callExpDateMap"]:
+        if contract_type == "CALL" and content["callExpDateMap"]:
             for date in content["callExpDateMap"]:
                 for strike in content["callExpDateMap"][date]:
                     for data in content["callExpDateMap"][date][strike]:
@@ -89,7 +101,7 @@ class TDData(Data):
             call_options['expirationDate'] = pd.to_datetime(call_options['expirationDate'], unit="ms")
             return call_options
 
-        if options_dict["contract_type"] == "PUT" and content["putExpDateMap"]:
+        if contract_type == "PUT" and content["putExpDateMap"]:
             for date in content["putExpDateMap"]:
                 for strike in content["putExpDateMap"][date]:
                     for data in content["putExpDateMap"][date][strike]:
