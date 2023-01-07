@@ -2,9 +2,9 @@ import asyncio
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from examples.ib.read_queue import run_ib_orb
+from examples.ib_day_traing.read_queue import run_ib_orb
 from big_algo_framework.big.social_media import SocialMedia
-from examples.ib import config
+from examples.ib_day_traing import config
 
 loop = asyncio.get_event_loop()
 ib_orb_queue = asyncio.Queue()
@@ -32,6 +32,8 @@ async def root():
 
 @app.post('/ib/orb')
 async def ib_orb(webhook_message: webhook_message):
+    print(webhook_message.dict())
+
     await ib_orb_queue.put(webhook_message)
 
 

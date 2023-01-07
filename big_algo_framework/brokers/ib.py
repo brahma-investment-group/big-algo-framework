@@ -105,6 +105,8 @@ class IB(Broker, ib_insync.IB):
                                      parentId=parent_id,
                                      account=account_no,
                                      transmit=transmit,
+                                     eTradeOnly=None,
+                                     firmQuoteOnly=None,
                                      **kwargs)
 
     async def get_stop_limit_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
@@ -152,6 +154,8 @@ class IB(Broker, ib_insync.IB):
                                         parentId=parent_id,
                                         account=account_no,
                                         transmit=transmit,
+                                        eTradeOnly=None,
+                                        firmQuoteOnly=None,
                                         **kwargs)
 
     async def get_limit_order(self, symbol: str, quantity: int, sec_type: str, limit_price: float, digits: int = 2,
@@ -194,6 +198,8 @@ class IB(Broker, ib_insync.IB):
                                         parentId=parent_id,
                                         account=account_no,
                                         transmit=transmit,
+                                        eTradeOnly=None,
+                                        firmQuoteOnly=None,
                                         **kwargs)
 
     async def get_stop_order(self, symbol: str, quantity: int, sec_type: str, stop_price: float,
@@ -239,6 +245,8 @@ class IB(Broker, ib_insync.IB):
                                    parentId=parent_id,
                                    account=account_no,
                                    transmit=transmit,
+                                   eTradeOnly = None,
+                                   firmQuoteOnly = None,
                                    **kwargs)
 
     async def get_trailing_stop_order(self, symbol: str, quantity: int, sec_type: str, trail_type: str,

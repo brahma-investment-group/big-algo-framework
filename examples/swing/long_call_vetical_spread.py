@@ -23,20 +23,20 @@ class LongCallVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "TSLA"
-        self.primary_exchange = "NASDAQ"
-        self.stock_stp_entry = 280
+        self.ticker = "ORCL"
+        self.primary_exchange = "NYSE"
+        self.stock_stp_entry = 63.25
         self.stock_lmt_entry = 1.001 * self.stock_stp_entry
-        self.stock_sl = 270
-        self.stock_tp = 300
-        self.low_strike = 270
-        self.high_strike = 275
+        self.stock_sl = 53
+        self.stock_tp = 69.14
+        self.low_strike = 65
+        self.high_strike = 67.5
         self.quantity = 1
 
-        self.expiry_date = 30
-        self.expiry_month = 9
+        self.expiry_date = 18
+        self.expiry_month = 11
         self.expiry_year = 2022
-        self.entry_time = "20220926 09:45:00"
+        self.entry_time = "20221004 09:45:00"
 
     async def connect_broker(self):
         global broker

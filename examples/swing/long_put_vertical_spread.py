@@ -23,18 +23,20 @@ class LongPutVeticalSpread(Strategy):
         self.currency = "USD"
         self.exchange = "SMART"
 
-        self.ticker = "SBUX"
+        self.ticker = "COST"
         self.primary_exchange = "NASDAQ"
-        self.stock_stp_entry = 212.60
+        self.stock_stp_entry = 466.11
         self.stock_lmt_entry = 0.999 * self.stock_stp_entry
-        self.stock_sl = 219.00
-        self.stock_tp = 210.41
-        self.itm_strike = 215.0
-        self.otm_strike = 212.5
+        self.stock_sl = 565.54
+        self.stock_tp = 448.14
+        self.low_strike = 460
+        self.high_strike = 465
         self.quantity = 1
 
-        self.strike_date = "20220909" #YYYYMMDD
-        self.entry_time = "20220905 09:45:00"
+        self.expiry_date = 18
+        self.expiry_month = 11
+        self.expiry_year = 2022
+        self.entry_time = "20221010 09:45:00"
 
     async def connect_broker(self):
         global broker
@@ -48,11 +50,15 @@ class LongPutVeticalSpread(Strategy):
         self.stock_contract = await self.broker.get_stock_contract(self.ticker, self.exchange, self.currency,
                                                                    self.primary_exchange)
         self.contract = await self.broker.get_long_put_vertical_spread_contract(symbol=self.ticker,
+                                                                                 quantity=self.quantity,
+                                                                                 expiry_date=self.expiry_date,
+                                                                                 expiry_month=self.expiry_month,
+                                                                                 expiry_year=self.expiry_year,
+                                                                                 low_strike=self.low_strike,
+                                                                                 high_strike=self.high_strike,
                                                                                  exchange=self.exchange,
-                                                                                 currency=self.currency, multiplier="100",
-                                                                                 expiration_date=self.strike_date,
-                                                                                 itm_strike=self.itm_strike,
-                                                                                 otm_strike=self.otm_strike)
+                                                                                 currency=self.currency,
+                                                                                 multiplier="100")
 
     async def send_orders(self):
         entry_order = await self.broker.get_market_order(action="BUY",
