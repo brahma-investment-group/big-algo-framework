@@ -1,8 +1,14 @@
+import asyncio
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-from examples.ib_orb.read_queue import *
+from examples.ib_day_traing.read_queue import run_ib_orb
 from big_algo_framework.big.social_media import SocialMedia
+from examples.ib_day_traing import config
 
+loop = asyncio.get_event_loop()
+ib_orb_queue = asyncio.Queue()
+asyncio.create_task(run_ib_orb(ib_orb_queue))
 app = FastAPI()
 
 class webhook_message(BaseModel):
@@ -26,7 +32,10 @@ async def root():
 
 @app.post('/ib/orb')
 async def ib_orb(webhook_message: webhook_message):
-    ib_orb_queue.put(webhook_message)
+    print(webhook_message.dict())
+
+    await ib_orb_queue.put(webhook_message)
+
 
     if webhook_message.is_close == 0:
         discord_data = {
@@ -49,4 +58,6 @@ async def ib_orb(webhook_message: webhook_message):
 
         social_media = SocialMedia(webhook_message)
         await social_media.send_discord_alerts(discord_data)
-        await social_media.send_twitter_alerts(twitter_data)
+#         #await social_media.send_twitter_alerts(twitter_data)
+
+

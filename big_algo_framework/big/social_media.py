@@ -1,4 +1,3 @@
-import time
 from discord_webhook import DiscordWebhook, DiscordEmbed
 import asyncio
 import tweepy
