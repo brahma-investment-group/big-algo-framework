@@ -7,7 +7,7 @@ setup(
     name='big_algo_framework',
     version='1.0.0',
     packages=['big_algo_framework', 'big_algo_framework.big', 'big_algo_framework.brokers', 'big_algo_framework.data',
-              'big_algo_framework.stategies'],
+              'big_algo_framework.strategies'],
     url='https://github.com/brahma-investment-group/big-algo-framework',
     license='MIT',
     author='Nagabrahmam Mantha',
