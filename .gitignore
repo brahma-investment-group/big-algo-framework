@@ -1,3 +1,25 @@
+# Mel's ib_tools project
+#   Setting, Parameters and Config files
+*.json
+*.toml
+*.yaml
+*.ini
+
+#   Flowchart and Word documents
+*.dia
+*.doc*
+*.rtf
+
+#   testcode folder is added here as the whole folder will be ignored 
+#   since the folder is not to be included in the repo nor any contained files
+testcode/
+
+#   ignore modules starting with test
+test*.py
+
+# ----------------------------------------------------------------------------------------
+# Previous .gitignore from big_algo_framework
+
 venv/
 algo/
 .idea/
