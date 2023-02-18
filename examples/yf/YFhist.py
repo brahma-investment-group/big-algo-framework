@@ -1,7 +1,7 @@
 from big_algo_framework.data.yf import YFData
 
 ticker = "TSLA"
-hPeriod = "1mo"
+hPeriod = "1y"
 hInterval = "1d"
 
 #hist = YFData(ticker)
