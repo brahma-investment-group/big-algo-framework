@@ -1,13 +1,12 @@
 ROADMAP
 ----------------
 1. To include brokers:
-    - Interactive Brokers incorporating ib_insync for access to the API
+    - Interactive Brokers incorporating ib_insync https://github.com/erdewit/ib_insync for access to the API
     - TDA-API (Connects to TD Ameritrade) https://github.com/alexgolec/tda-api
     - Metratrader5 (Connects to any Forex Broker that support MT5) https://www.mql5.com/en/docs/integration/python_metatrader5
     - CCXT - (Connects to any Crypto Broker that CCXT supports) https://github.com/ccxt/ccxt
     - Yahoo Finance using yFinance module https://pypi.org/project/yfinance/ to fetch historical pricing and a plethora of financial information for stocks
 2. To include documentation
-
 
 ABOUT
 ----------------
@@ -21,7 +20,7 @@ big-algo-framework comes in 2 parts:
 Framework
 ----------------
 The framework consists of several broker APIs (or Python wrappers for the broker API). Currently the following brokers are supported:
-01. Interactive Brokers - https://interactivebrokers.github.io/tws-api/introduction.html
+01. Interactive Brokers - https://interactivebrokers.github.io/tws-api/introduction.html and  
 02. TDA-API (Connects to TD Ameritrade) https://github.com/alexgolec/tda-api
 The framework also comes with common functionality like 'Position Sizing", "Databases" and these are located in the 'big' folder.
 
