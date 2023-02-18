@@ -15,7 +15,7 @@
 testcode/
 
 #   ignore modules starting with test
-test*.py
+test*
 
 # ----------------------------------------------------------------------------------------
 # Previous .gitignore from big_algo_framework
