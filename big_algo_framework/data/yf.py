@@ -51,7 +51,8 @@ class YFData(Data):
         interval = self.frequency + self.frequency_type
 
         yfTkr = yf.Ticker(self.symbol)
-        self.yfHist = yfTkr.history(period = period, interval = interval, start = self.start, end = self.end)
+        yfDF = yfTkr.history(period = period, interval = interval, start = self.start, end = self.end)
+        self.yfHist = yfDF.to_json(orient='records')
         return self.yfHist
         
 
