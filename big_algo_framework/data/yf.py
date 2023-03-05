@@ -8,13 +8,24 @@ import yfinance as yf
 
 class YFData(Data):
     def __init__(self, 
-                 symbol = "", 
-                 period_type = "mo",
-                 period = "1", 
-                 frequency_type = "d",
-                 frequency = "1",
-                 start = None,
-                 end = None):
+                 symbol: str = "",
+                 period_type: str = "mo",
+                 period: str = "1",
+                 frequency_type: str = "d",
+                 frequency: str = "1",
+                 start: str = None,
+                 end: str = None):
+        """
+            Creates and returns a YFData object.
+
+            :param symbol: The symbol.
+            :param period_type: Possible values are "d", "mo", "y. Either Use period parameters or use start and end.
+            :param period: Possible values are  "1","5" (d), "1","3","6" (mo), "1","2","5","10" (y), "ytd", "max". Either Use period parameters or use start and end.
+            :param frequency_type: Possible values are "m", "h", "d", "wk", "mo". Intraday data cannot exceed last 60 days
+            :param frequency: Possible values are "1","2","5","15","30","60","90" (m), "1" (h), "1","5" (d), "1" (wk), "1","3" (mo). Intraday data cannot exceed last 60 days
+            :param start: Download start date string (YYYY-MM-DD) or _datetime. Default is 1900-01-01
+            :param end: Download end date string (YYYY-MM-DD) or _datetime. Default is now
+        """
 
         self.symbol = symbol
         self.period_type = period_type
@@ -23,38 +34,16 @@ class YFData(Data):
         self.frequency = frequency
         self.start = start
         self.end = end
-        self.yfHist = ""
-#   def get_historic_stock_data(self, symbol, period_type, period, frequency_type, frequency, extended_hours_data='false'):
+
     def get_historic_stock_data(self):
-        """
-        :Parameters:
-            period_type : str
-                Valid periods_types: d, mo, y
-                Either Use period parameters or use start and end
-            period : str
-                Valid periods: 1,5 (d), 1,3,6 (mo), 1,2,5,10 (y), ytd, max
-                Either Use period parameters or use start and end
-            frequency_type : str
-                Valid frequency_type: m, h, d, wk, mo
-                Intraday data cannot exceed last 60 days 
-            frequency : str
-                Valid intervals: 1,2,5,15,30,60,90 (m),1 (h), 1,5 (d), 1 (wk), 1,3 (mo)
-                Intraday data cannot exceed last 60 days
-            start: str
-                Download start date string (YYYY-MM-DD) or _datetime.
-                Default is 1900-01-01
-            end: str
-                Download end date string (YYYY-MM-DD) or _datetime.
-                Default is now
-        """
         period = self.period + self.period_type
         interval = self.frequency + self.frequency_type
 
         yfTkr = yf.Ticker(self.symbol)
         yfDF = yfTkr.history(period = period, interval = interval, start = self.start, end = self.end)
-        self.yfHist = yfDF.to_json(orient='records')
-        return self.yfHist
-        
+        yfHist = yfDF.to_json(orient='records')
+
+        return yfHist
 
     def get_historic_option_data(self, symbol, contract_type, strike_count="", include_quotes="False", strategy="SINGLE",
                                  interval="", strike="", range="", volatility="", underlying_price="", interest_rate="",

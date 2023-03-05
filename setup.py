@@ -29,7 +29,8 @@ setup(
         'requests',
         'selenium',
         'tda-api',
-        'tweepy'],
+        'tweepy',
+        'yfinance'],
 
     keywords='finance trading equities stocks bonds futures options research data markets interactive brokers td '
              'ameritrade polygon algorithm automation')
