@@ -5,6 +5,8 @@ algo/
 big_algo_framework/__pycache__/
 big_algo_framework/*/__pycache__/
 
+docs/_build
+
 examples/__pycache__/
 examples/*/__pycache__/
 
