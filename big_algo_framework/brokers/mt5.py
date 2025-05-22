@@ -99,3 +99,4 @@ class MT(Broker):
 
     def close_all_positions(self):
         pass
+

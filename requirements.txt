@@ -8,3 +8,4 @@ requests
 selenium
 tda-api
 tweepy
+yfinance
